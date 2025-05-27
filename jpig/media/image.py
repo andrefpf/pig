@@ -1,38 +1,41 @@
 import numpy as np
 from pathlib import Path
+from PIL import Image
 
 
-class JPIGImage:
+class RawImage:
     def __init__(self) -> None:
-        self.data = np.array()
+        self.data = np.array([])
     
     def width(self):
-        pass
+        if len(self.data.shape) < 2:
+            return 0
+        return self.data.shape[1]
 
     def height(self):
-        pass
+        if len(self.data.shape) < 2:
+            return 0
+        return self.data.shape[0]
+    
+    def channels(self):
+        if len(self.data.shape) < 3:
+            return 1
+        return self.data.shape[2]
 
-    def get_pixel(self, x: int, y: int) -> tuple[int, int, int]:
-        return (0, 0, 0)  # rgb
+    def get_pixel(self, x: int, y: int) -> np.ndarray:
+        return self.data[y, x]
 
     def get_sample(self, x: int, y: int, channel: int) -> int:
-        return 0
+        return self.data[y, x, channel]
+
+    def get_channel(self, channel: int) -> np.ndarray:
+        return self.data[:, :, channel]
+
+    def load_file(self, path: str | Path):
+        self.data = np.array(Image.open(path))
+        return self
 
     def show(self):
-        pass
-
-    def load_from_png(self, path: str | Path):
-        path = Path
-        # implement the loader here
-
-    def load_from_ppm(self, path: str | Path):
-        path = Path
-        # implement the loader here
-
-    def load_from_bitmap(self, path: str | Path):
-        path = Path
-        # implement the loader here
-
-    def load_from_jpeg(self, path: str | Path):
-        path = Path
-        # implement the loader here
+        import matplotlib.pyplot as plt
+        plt.imshow(self.data, cmap="gray")
+        plt.show()
