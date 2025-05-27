@@ -6,7 +6,7 @@ from PIL import Image
 class RawImage:
     def __init__(self) -> None:
         self.data = np.array([])
-    
+
     def width(self):
         if len(self.data.shape) < 2:
             return 0
@@ -16,7 +16,7 @@ class RawImage:
         if len(self.data.shape) < 2:
             return 0
         return self.data.shape[0]
-    
+
     def channels(self):
         if len(self.data.shape) < 3:
             return 1
@@ -37,5 +37,6 @@ class RawImage:
 
     def show(self):
         import matplotlib.pyplot as plt
+
         plt.imshow(self.data, cmap="gray")
         plt.show()
