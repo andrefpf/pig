@@ -1,16 +1,11 @@
-[tool.poetry]
+[project]
 name = "jpig"
 version = "0.1.0"
-description = ""
-authors = ["André Fernandes <fpf.andre@gmail.com>"]
+description = "Add your description here"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.11"
-numpy = "^2.1.2"
-matplotlib = "^3.9.2"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.3",
+    "numpy>=2.2.6",
+    "scipy>=1.15.3",
+]
