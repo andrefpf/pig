@@ -8,17 +8,17 @@ class RawImage:
         self.data = np.array([])
 
     def width(self):
-        if len(self.data.shape) < 2:
+        if self.data.ndim < 2:
             return 0
         return self.data.shape[1]
 
     def height(self):
-        if len(self.data.shape) < 2:
+        if self.data.ndim < 2:
             return 0
         return self.data.shape[0]
 
     def channels(self):
-        if len(self.data.shape) < 3:
+        if self.data.ndim < 3:
             return 1
         return self.data.shape[2]
 
