@@ -117,7 +117,7 @@ class Mule:
         self.flags = "S" + self.flags
         for sub_block in split_blocks_in_half(block):
             self.encode(sub_block, lagrangian, current_bitplane)
-        self.rd.rate += BITS_PER_FLAG["S"]
+        self.rd.rate = self._estimate_total_rate()
         return self
 
     def _encode_value(self, value: int, current_bitplane: int):
@@ -131,6 +131,7 @@ class Mule:
         rate = binary_entropy(self.signals) * len(self.signals)
         for bitplane in self.encoded_bitplanes:
             rate += binary_entropy(bitplane) * len(bitplane)
+        rate += sum(BITS_PER_FLAG[i] for i in self.flags)
         return rate
 
     def __str__(self) -> str:
