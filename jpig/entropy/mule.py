@@ -34,13 +34,8 @@ class Mule:
         self,
         block: np.ndarray,
         lagrangian: float = 10_000,
-        current_bitplane: int = -1,
+        current_bitplane: int = 32,
     ):
-        if self.max_bitplane < 0:
-            # It just enters here on the first call
-            current_bitplane = self.find_max_bitplane(block)
-            self.max_bitplane = current_bitplane
-
         if block.size == 0:
             return self
 
@@ -57,7 +52,11 @@ class Mule:
             return self
 
         if self.is_bitplane_zero(block, current_bitplane):
-            lower_bp_flag = Mule()._encode_lower_bp_flag(block, lagrangian, current_bitplane)
+            lower_bp_flag = Mule()._encode_lower_bp_flag(
+                block,
+                lagrangian,
+                current_bitplane,
+            )
             lower_bp_cost = lower_bp_flag.rd.cost(proportional_lagrangian)
             if lower_bp_cost < zero_cost:
                 self += lower_bp_flag
