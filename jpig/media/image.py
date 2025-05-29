@@ -6,6 +6,7 @@ from PIL import Image
 class RawImage:
     def __init__(self) -> None:
         self.data = np.array([])
+        self.bitdepth = 8
 
     def width(self):
         if self.data.ndim < 2:
@@ -32,11 +33,17 @@ class RawImage:
         return self.data[:, :, channel]
 
     def load_file(self, path: str | Path):
-        self.data = np.array(Image.open(path))
+        image = Image.open(path)
+        self.data = np.array(image)
         return self
 
     def show(self):
         import matplotlib.pyplot as plt
 
-        plt.imshow(self.data, cmap="gray")
+        plt.imshow(
+            self.data,
+            vmin=0,
+            vmax=(1 << self.bitdepth),
+            cmap="gray",
+        )
         plt.show()
