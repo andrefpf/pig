@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Sequence
 
 import numpy as np
-from jpig.metrics.rate_distortion import RD
+from jpig.metrics import RD, binary_entropy
 from jpig.utils.block_utils import split_blocks_in_half
 
 BITS_PER_FLAG = {
@@ -99,8 +99,8 @@ class Mule:
         """
 
         self.flags = "L" + self.flags
-        self.rd.rate += BITS_PER_FLAG["L"]
         self.encode(block, lagrangian, current_bitplane - 1)
+        self.rd.rate += BITS_PER_FLAG["L"]
         return self
 
     def _encode_split_flag(
@@ -115,36 +115,23 @@ class Mule:
         error, unless the recursive call introduces it.
         """
         self.flags = "S" + self.flags
-        self.rd.rate += BITS_PER_FLAG["S"]
         for sub_block in split_blocks_in_half(block):
             self.encode(sub_block, lagrangian, current_bitplane)
+        self.rd.rate += BITS_PER_FLAG["S"]
         return self
 
     def _encode_value(self, value: int, current_bitplane: int):
         self.signals.append(value < 0)
         for i in range(current_bitplane):
             self.encoded_bitplanes[i].append((1 << i) & value != 0)
-        self.rd.rate += self._estimate_total_rate()
+        self.rd.rate = self._estimate_total_rate()
         return self
 
     def _estimate_total_rate(self):
-        rate = self._estimate_rate_of_sequence(self.signals)
+        rate = binary_entropy(self.signals) * len(self.signals)
         for bitplane in self.encoded_bitplanes:
-            rate += self._estimate_rate_of_sequence(bitplane)
+            rate += binary_entropy(bitplane) * len(bitplane)
         return rate
-
-    def _estimate_rate_of_sequence(self, sequence: Sequence[bool]):
-        number_of_bits = len(sequence)
-        number_of_one_bits = np.sum(sequence)
-        number_of_zero_bits = number_of_bits - np.sum(sequence)
-
-        if (number_of_bits * number_of_zero_bits * number_of_one_bits) == 0:
-            return 0
-
-        probability_of_one = number_of_one_bits / number_of_bits
-        probability_of_zero = 1 - probability_of_one
-
-        return np.log(probability_of_zero) * np.log(probability_of_one) * number_of_bits
 
     def __str__(self) -> str:
         signals = "".join("-" if signal else "+" for signal in self.signals)
@@ -187,3 +174,17 @@ class Mule:
     @staticmethod
     def is_bitplane_zero(block, bitplane):
         return np.sum(np.abs(block) & 1 << (bitplane - 1)) == 0
+
+    @staticmethod
+    def _estimate_rate_of_sequence(sequence: Sequence[bool]):
+        number_of_bits = len(sequence)
+        number_of_one_bits = np.sum(sequence)
+        number_of_zero_bits = number_of_bits - np.sum(sequence)
+
+        if (number_of_bits * number_of_zero_bits * number_of_one_bits) == 0:
+            return 0
+
+        probability_of_one = number_of_one_bits / number_of_bits
+        probability_of_zero = 1 - probability_of_one
+
+        return np.log(probability_of_zero) * np.log(probability_of_one) * number_of_bits
