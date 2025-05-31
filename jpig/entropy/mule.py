@@ -60,7 +60,9 @@ class Mule:
             lower_bp_cost = lower_bp_flag.rd.cost(proportional_lagrangian)
             if lower_bp_cost < zero_cost:
                 self += lower_bp_flag
-                return self
+            else:
+                self += zero_flag
+            return self
 
         split_flag = Mule()._encode_split_flag(block, lagrangian, current_bitplane)
         split_cost = split_flag.rd.cost(proportional_lagrangian)
@@ -97,18 +99,30 @@ class Mule:
 
         return block
 
+    def flags_as_binary(self):
+        bitstream = []
+        for flag in self.flags:
+            if flag == "Z":
+                bitstream.extend([False])
+            elif flag == "L":
+                bitstream.extend([True, False])
+            elif flag == "S":
+                bitstream.extend([True, True])
+        return bitstream
+
     def copy(self):
         return deepcopy(self)
 
     def clear(self):
         pass
 
-    def _encode_zero_flag(self, block: np.ndarray):
+    def _encode_zero_flag(self, block: np.ndarray) -> "Mule":
         """
         Add the "Z" flag in the encoding.
         The added rate is just the cost of the flag, and the distortion is the
         MSE of the block when compared to the zeroed output, i.e. the block squared.
         """
+        print("Z", end=".")
         self.flags = "Z" + self.flags
         self.rd.rate += BITS_PER_FLAG["Z"]
         self.rd.distortion = np.sum(block**2)
@@ -119,13 +133,13 @@ class Mule:
         block: np.ndarray,
         lagrangian: float,
         current_bitplane: int,
-    ):
+    ) -> "Mule":
         """
         Add the "L" flag in the encoding.
         The added rate is just the cost of the flag, it does not introduces
         error, unless the recursive call introduces it.
         """
-
+        print("L", end=".")
         self.flags = "L" + self.flags
         self.encode(block, lagrangian, current_bitplane - 1)
         self.rd.rate += BITS_PER_FLAG["L"]
@@ -136,19 +150,21 @@ class Mule:
         block: np.ndarray,
         lagrangian: float,
         current_bitplane: int,
-    ):
+    ) -> "Mule":
         """
         Add the "S" flag in the encoding.
         The added rate is just the cost of the flag, it does not introduces
         error, unless the recursive call introduces it.
         """
+        print("S", end=".")
         self.flags = "S" + self.flags
         for sub_block in split_blocks_in_half(block):
             self.encode(sub_block, lagrangian, current_bitplane)
         self.rd.rate = self._estimate_total_rate()
         return self
 
-    def _encode_value(self, value: int, current_bitplane: int):
+    def _encode_value(self, value: int, current_bitplane: int) -> "Mule":
+        print("val")
         self.signals.append(value < 0)
         for i in range(current_bitplane):
             self.encoded_bitplanes[i].append((1 << i) & np.abs(value) != 0)
