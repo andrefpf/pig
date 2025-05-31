@@ -23,6 +23,12 @@ class RawImage:
             return 1
         return self.data.shape[2]
 
+    def number_of_pixels(self):
+        return self.height() * self.width()
+
+    def number_of_samples(self):
+        return self.number_of_pixels() * self.channels()
+
     def get_pixel(self, x: int, y: int) -> np.ndarray:
         return self.data[y, x]
 
