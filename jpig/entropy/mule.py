@@ -72,8 +72,36 @@ class Mule:
 
         return self
 
+    def decode(self, block: np.ndarray, current_bitplane: int = 32) -> np.ndarray:
+        if block.size == 1:
+            block[:] = self._decode_value(current_bitplane)
+            return block
+
+        # pop left of flags
+        flag = self.flags[0]
+        self.flags = self.flags[1:]
+
+        if flag == "Z":
+            pass
+
+        elif flag == "L":
+            self.decode(block, current_bitplane - 1)
+
+        elif flag == "S":
+            for sub_block in split_blocks_in_half(block):
+                self.decode(sub_block, current_bitplane)
+
+        else:
+            self.clear()
+            raise ValueError("Invalid encoding")
+
+        return block
+
     def copy(self):
         return deepcopy(self)
+
+    def clear(self):
+        pass
 
     def _encode_zero_flag(self, block: np.ndarray):
         """
@@ -83,7 +111,7 @@ class Mule:
         """
         self.flags = "Z" + self.flags
         self.rd.rate += BITS_PER_FLAG["Z"]
-        self.rd.distortion += np.sum(block**2)
+        self.rd.distortion = np.sum(block**2)
         return self
 
     def _encode_lower_bp_flag(
@@ -123,9 +151,24 @@ class Mule:
     def _encode_value(self, value: int, current_bitplane: int):
         self.signals.append(value < 0)
         for i in range(current_bitplane):
-            self.encoded_bitplanes[i].append((1 << i) & value != 0)
+            self.encoded_bitplanes[i].append((1 << i) & np.abs(value) != 0)
         self.rd.rate = self._estimate_total_rate()
         return self
+
+    def _decode_value(self, current_bitplane: int):
+        value = int()
+        for i in range(current_bitplane):
+            if not self.encoded_bitplanes[i]:
+                # aqui deu ruim
+                continue
+
+            if self.encoded_bitplanes[i].pop(0):
+                value |= 1 << i
+
+        if self.signals.pop(0):
+            value = -value
+
+        return value
 
     def _estimate_total_rate(self):
         rate = binary_entropy(self.signals) * len(self.signals)
