@@ -122,7 +122,6 @@ class Mule:
         The added rate is just the cost of the flag, and the distortion is the
         MSE of the block when compared to the zeroed output, i.e. the block squared.
         """
-        print("Z", end=".")
         self.flags = "Z" + self.flags
         self.rd.rate += BITS_PER_FLAG["Z"]
         self.rd.distortion = np.sum(block**2)
@@ -139,7 +138,6 @@ class Mule:
         The added rate is just the cost of the flag, it does not introduces
         error, unless the recursive call introduces it.
         """
-        print("L", end=".")
         self.flags = "L" + self.flags
         self.encode(block, lagrangian, current_bitplane - 1)
         self.rd.rate += BITS_PER_FLAG["L"]
@@ -156,7 +154,6 @@ class Mule:
         The added rate is just the cost of the flag, it does not introduces
         error, unless the recursive call introduces it.
         """
-        print("S", end=".")
         self.flags = "S" + self.flags
         for sub_block in split_blocks_in_half(block):
             self.encode(sub_block, lagrangian, current_bitplane)
@@ -164,7 +161,6 @@ class Mule:
         return self
 
     def _encode_value(self, value: int, current_bitplane: int) -> "Mule":
-        print("val")
         self.signals.append(value < 0)
         for i in range(current_bitplane):
             self.encoded_bitplanes[i].append((1 << i) & np.abs(value) != 0)
