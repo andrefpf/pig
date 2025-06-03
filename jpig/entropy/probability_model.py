@@ -17,15 +17,20 @@ class ProbabilityModel:
     def total_bits(self) -> int:
         return self.frequency_of_zeros + self.frequency_of_ones
 
-    def probability_of_zeros(self) -> float:
-        if self.frequency_of_zeros <= 0:
-            return 0
-        return self.frequency_of_zeros / self.total_bits()
+    def frequency(self, bit: bool | Literal[0, 1]) -> int:
+        return self.frequency_of_ones if bit else self.frequency_of_zeros
 
-    def probability_of_ones(self) -> float:
-        if self.frequency_of_ones <= 0:
+    def probability(self, bit: bool | Literal[0, 1]) -> float:
+        if self.frequency(0) <= 0:
             return 0
-        return self.frequency_of_ones / self.total_bits()
+    
+        if self.frequency(1) <= 0:
+            return 0
+
+        if bit:
+            return self.frequency_of_ones / self.total_bits()
+        else:
+            return self.frequency_of_zeros / self.total_bits()
 
     def entropy(self) -> float:
         prob_0 = self.probability_of_zeros()
