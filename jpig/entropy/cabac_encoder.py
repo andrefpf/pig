@@ -51,7 +51,15 @@ class CabacEncoder:
 
         return self
 
-    def encode_bit(self, bit: bool | Literal[0, 1]):
+    def encode_bit(
+        self,
+        bit: bool | Literal[0, 1],
+        *,
+        model: ProbabilityModel | None = None,
+    ):
+        if model is not None:
+            self.use_model(model)
+
         self._update_table()
 
         if bit:
@@ -76,15 +84,21 @@ class CabacEncoder:
 
     def _resolve_scaling(self):
         while True:
-            if (self.high & self._entropy_msb_mask) == (self.low & self._entropy_msb_mask):
-                msb = (self.high & self._entropy_msb_mask) >> (self.entropy_precision - 1)
+            if (self.high & self._entropy_msb_mask) == (
+                self.low & self._entropy_msb_mask
+            ):
+                msb = (self.high & self._entropy_msb_mask) >> (
+                    self.entropy_precision - 1
+                )
                 self.low -= self._half_range * msb + msb
                 self.high -= self._half_range * msb + msb
 
                 self.result.append(bool(msb))
                 self._flush_inverse_bits(bool(msb))
 
-            elif (self.high <= self._three_quarter_range) and (self.low > self._quarter_range):
+            elif (self.high <= self._three_quarter_range) and (
+                self.low > self._quarter_range
+            ):
                 self.low -= self._quarter_range + 1
                 self.high -= self._quarter_range + 1
                 self.e3_count += 1

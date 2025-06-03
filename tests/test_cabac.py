@@ -41,38 +41,49 @@ def test_more_ones_than_zeros():
 def test_mixed_models():
     # The data
     part_1 = (np.random.random(100) < 0.3).tolist()
-    part_2 = (np.random.random(80) < 0.6).tolist()
+    part_2 = (np.random.random(20) < 0.6).tolist()
+    part_3 = (np.random.random(80) < 0.8).tolist()
+
+    encoder_models = [
+        ProbabilityModel(),
+        ProbabilityModel(),
+        ProbabilityModel(),
+    ]
+
+    decoder_models = [
+        ProbabilityModel(),
+        ProbabilityModel(),
+        ProbabilityModel(),
+    ]
 
     # Encode the data
-    model_1_encoder = ProbabilityModel()
-    model_2_encoder = ProbabilityModel()
-    encoded_bitstream = bitarray()
-    encoder = CabacEncoder().start(encoded_bitstream)
+    encoder = CabacEncoder().start()
 
-    encoder.use_model(model_1_encoder)
     for i in part_1:
-        encoder.encode_bit(i)
+        encoder.encode_bit(i, model=encoder_models[0])
 
-    encoder.use_model(model_2_encoder)
     for i in part_2:
-        encoder.encode_bit(i)
+        encoder.encode_bit(i, model=encoder_models[1])
 
-    encoder.end()
+    for i in part_3:
+        encoder.encode_bit(i, model=encoder_models[2])
+
+    encoded_bitstream = encoder.end()
 
     # Decode the data
-    model_1_decoder = ProbabilityModel()
-    model_2_decoder = ProbabilityModel()
-    decoded_bitstream = bitarray()
-    decoder = CabacDecoder().start(encoded_bitstream, decoded_bitstream)
+    decoder = CabacDecoder().start(encoded_bitstream)
 
-    decoder.use_model(model_1_decoder)
     for _ in range(len(part_1)):
-        decoder.decode_bit()
+        decoder.decode_bit(model=decoder_models[0])
 
-    decoder.use_model(model_2_decoder)
     for _ in range(len(part_2)):
-        decoder.decode_bit()
+        decoder.decode_bit(model=decoder_models[1])
 
-    decoder.end()
+    for _ in range(len(part_3)):
+        decoder.decode_bit(model=decoder_models[2])
 
-    assert bitarray(part_1 + part_2) == decoded_bitstream
+    decoded_bitstream = decoder.end()
+
+    assert bitarray(part_1 + part_2 + part_3) == decoded_bitstream
+    for e, d in zip(encoder_models, decoder_models):
+        assert e == d
