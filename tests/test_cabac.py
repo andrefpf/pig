@@ -6,7 +6,7 @@ from jpig.entropy.cabac import CabacEncoder, CabacDecoder
 
 def test_specific_sequence():
     original = bitarray("1110 1101 1011 0111 1110 1111 1111 0111")
-    expected_encoding = bitarray("1100 0111 1010 0101 1010 0000 11")
+    expected_encoding = bitarray("11000001011010010111100011")
 
     encoded = CabacEncoder().encode(original)
     decoded = CabacDecoder().decode(encoded, len(original))

@@ -58,6 +58,7 @@ class CabacEncoder:
 
     def end(self):
         self._flush()
+        self.result.reverse()
         return self.result
 
     # Internal use
@@ -130,7 +131,7 @@ class CabacDecoder:
         self.high = self._full_range
 
     def decode(self, bits: bitarray, size: int):
-        self.start(bits)
+        self.start(bits.copy())
 
         for _ in range(size):
             self.decode_bit()
@@ -163,7 +164,7 @@ class CabacDecoder:
     # Internal use
     def _read_first_word(self):
         for _ in range(self.entropy_precision):
-            bit = self.buffer[self.read_bits]
+            bit = self.buffer.pop()
             self.current = (self.current << 1) | bit
             self.read_bits += 1
 
@@ -192,8 +193,8 @@ class CabacDecoder:
             else:
                 return
 
-            if self.read_bits < len(self.buffer):
-                bit = self.buffer[self.read_bits]
+            if self.buffer:
+                bit = self.buffer.pop()
                 self.read_bits += 1
 
             self.high = ((self.high << 1) & self._full_range) | 1
