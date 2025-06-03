@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import numpy as np 
+import numpy as np
 from typing import Literal
 
 
@@ -19,9 +19,9 @@ class ProbabilityModel:
 
     def probability_of_zeros(self) -> float:
         if self.frequency_of_zeros <= 0:
-            return 0 
+            return 0
         return self.frequency_of_zeros / self.total_bits()
-    
+
     def probability_of_ones(self) -> float:
         if self.frequency_of_ones <= 0:
             return 0
