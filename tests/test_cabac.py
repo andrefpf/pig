@@ -1,7 +1,7 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy.cabac import CabacEncoder, CabacDecoder
+from jpig.entropy import CabacEncoder, CabacDecoder
 
 
 def test_specific_sequence():
