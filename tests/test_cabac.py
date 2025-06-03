@@ -1,45 +1,25 @@
-from jpig.entropy.cabac import Cabac
 import numpy as np
+from bitarray import bitarray
+
+from jpig.entropy.cabac import Cabac
 
 
 def test_specific_sequence():
-    # random sequence of booleans with more zeros than ones
-    original = [
-        True, True, True, False,
-        True, True, False, True,
-        True, False, True, True,
-        False, True, True, True,
-        True, True, True, False,
-        True, True, True, True,
-        True, True, True, True,
-        False, True, True, True,
-    ]  # fmt: skip
-
-    expected_encoding = [
-        True, True, False, False,
-        False, True, True, True, 
-        True, False, True, False, 
-        False, True, False, True, 
-        True, False, True, False, 
-        False, False, False, False, 
-        True, True
-    ]  # fmt: skip
-
+    original = bitarray("1110 1101 1011 0111 1110 1111 1111 0111")
+    expected_encoding = bitarray("1100 0111 1010 0101 1010 0000 11")
 
     cabac = Cabac()
     encoded = cabac.encode(original)
     decoded = cabac.decode(encoded, len(original))
-
 
     assert encoded == expected_encoding
     assert len(encoded) <= len(original)
     assert original == decoded
 
 
-
 def test_more_zeros_than_ones():
     # random sequence of booleans with more zeros than ones
-    original = list(np.random.random(100) < 0.2)
+    original = bitarray((np.random.random(100) < 0.2).tolist())
 
     cabac = Cabac()
     encoded = cabac.encode(original)
@@ -51,7 +31,7 @@ def test_more_zeros_than_ones():
 
 def test_more_ones_than_zeros():
     # random sequence of booleans with more ones than zeros
-    original = list(np.random.random(100) < 0.9)
+    original = bitarray((np.random.random(100) < 0.9).tolist())
 
     cabac = Cabac()
     encoded = cabac.encode(original)

@@ -1,5 +1,6 @@
-from typing import Sequence
+from typing import Literal
 from collections import deque
+from bitarray import bitarray
 
 
 class Cabac:
@@ -31,10 +32,10 @@ class Cabac:
         self.high = self._full_range
 
         self.current: int = 0
-        self.encoded_data: deque[bool] = deque()
-        self.decoded_data: deque[bool] = deque()
+        self._buffer = bitarray()
+        self._result = bitarray()
 
-    def encode(self, bits: Sequence[bool]):
+    def encode(self, bits: bitarray):
         self.clear()
 
         for bit in bits:
@@ -42,17 +43,18 @@ class Cabac:
 
         self.flush()
 
-        return list(self.encoded_data)
+        return self._result
 
-    def decode(self, bits: Sequence[bool], size: int):
+    def decode(self, bits: bitarray, size: int):
         self.clear()
-        self.encoded_data = deque(bits)
+        self._buffer = bits.copy()
+        self._buffer.reverse()
         self.read_first_word()
 
         for _ in range(size):
             self.decode_bit()
 
-        return list(self.decoded_data)
+        return self._result
 
     def encode_bit(self, bit: bool):
         self.update_table()
@@ -72,18 +74,18 @@ class Cabac:
         if self.low <= self.current <= self.mid:
             self.high = self.mid
             self.frequency_of_zeros += 1
-            self.decoded_data.append(False)
+            self._result.append(0)
 
         elif self.mid < self.current <= self.high:
             self.low = self.mid + 1
             self.frequency_of_ones += 1
-            self.decoded_data.append(True)
+            self._result.append(1)
 
         self.resolve_decoder_scaling()
 
     def read_first_word(self):
         for _ in range(self.entropy_precision):
-            bit = self.encoded_data.popleft()
+            bit = self._buffer.pop()
             self.current = (self.current << 1) | bit
 
     def update_table(self):
@@ -103,7 +105,7 @@ class Cabac:
                 self.low -= self._half_range * msb + msb
                 self.high -= self._half_range * msb + msb
 
-                self.encoded_data.append(bool(msb))
+                self._result.append(bool(msb))
                 self.flush_inverse_bits(bool(msb))
 
             elif (self.high <= self._three_quarter_range) and (
@@ -141,25 +143,25 @@ class Cabac:
             else:
                 return
 
-            if self.encoded_data:
-                bit = self.encoded_data.popleft()
+            if self._buffer:
+                bit = self._buffer.pop()
 
             self.high = ((self.high << 1) & self._full_range) | 1
             self.low = ((self.low << 1) & self._full_range) | 0
             self.current = ((self.current << 1) & self._full_range) | bit
 
-    def flush_inverse_bits(self, bit: bool):
+    def flush_inverse_bits(self, bit: bool | Literal[0, 1]):
         value = not bool(bit)
         for _ in range(self.e3_count):
-            self.encoded_data.append(value)
+            self._result.append(value)
         self.e3_count = 0
 
     def flush(self):
         self.e3_count += 1
 
         if self.low < self._quarter_range:
-            self.encoded_data.append(False)
-            self.flush_inverse_bits(False)
+            self._result.append(0)
+            self.flush_inverse_bits(0)
         else:
-            self.encoded_data.append(True)
-            self.flush_inverse_bits(True)
+            self._result.append(1)
+            self.flush_inverse_bits(1)
