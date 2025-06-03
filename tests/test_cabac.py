@@ -16,6 +16,17 @@ def test_specific_sequence():
     assert len(encoded) <= len(original)
     assert original == decoded
 
+def test_small_sequence():
+    original = bitarray("1110 1101 1011 0111")
+    expected_encoding = bitarray("1100 0111 1010 0101")
+
+    cabac = Cabac()
+    encoded = cabac.encode(original)
+    decoded = cabac.decode(encoded, len(original))
+
+    assert encoded == expected_encoding
+    assert len(encoded) <= len(original)
+    assert original == decoded
 
 def test_more_zeros_than_ones():
     # random sequence of booleans with more zeros than ones

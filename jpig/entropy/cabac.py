@@ -84,8 +84,10 @@ class Cabac:
         self.resolve_decoder_scaling()
 
     def read_first_word(self):
+        bit = 0
         for _ in range(self.entropy_precision):
-            bit = self._buffer.pop()
+            if self._buffer:
+                bit = self._buffer.pop()
             self.current = (self.current << 1) | bit
 
     def update_table(self):
