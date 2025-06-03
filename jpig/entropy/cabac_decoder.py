@@ -33,6 +33,9 @@ class CabacDecoder:
         self.mid = self._half_range
         self.high = self._full_range
 
+    def use_model(self, model: ProbabilityModel):
+        self.probability_model = model
+
     def decode(self, bits: bitarray, size: int):
         self.start(bits.copy())
 
@@ -41,10 +44,14 @@ class CabacDecoder:
 
         return self.end()
 
-    def start(self, bits: bitarray):
+    def start(self, bits: bitarray, result: bitarray | None = None):
         self.clear()
+        if result is not None:
+            self.result = result
+
         self.buffer = bits.copy()
         self._read_first_word()
+        return self
 
     def decode_bit(self):
         self._update_table()
@@ -59,6 +66,9 @@ class CabacDecoder:
             self.probability_model.add_bit(1)
             self.result.append(1)
 
+        else:
+            print("ENTROU AQUI???")
+
         self._resolve_scaling()
 
     def end(self):
@@ -67,7 +77,8 @@ class CabacDecoder:
     # Internal use
     def _read_first_word(self):
         for _ in range(self.entropy_precision):
-            bit = self.buffer.pop()
+            if self.buffer:
+                bit = self.buffer.pop()
             self.current = (self.current << 1) | bit
             self.read_bits += 1
 

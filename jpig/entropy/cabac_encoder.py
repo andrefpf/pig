@@ -33,6 +33,9 @@ class CabacEncoder:
         self.high = self._full_range
         self.e3_count = 0
 
+    def use_model(self, model: ProbabilityModel):
+        self.probability_model = model
+
     def encode(self, bits: bitarray):
         self.start()
 
@@ -41,8 +44,12 @@ class CabacEncoder:
 
         return self.end()
 
-    def start(self):
+    def start(self, result: bitarray | None = None):
         self.clear()
+        if result is not None:
+            self.result = result
+
+        return self
 
     def encode_bit(self, bit: bool | Literal[0, 1]):
         self._update_table()

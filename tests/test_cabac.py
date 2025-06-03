@@ -1,7 +1,7 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder, CabacDecoder
+from jpig.entropy import CabacEncoder, CabacDecoder, ProbabilityModel
 
 
 def test_specific_sequence():
@@ -36,3 +36,43 @@ def test_more_ones_than_zeros():
 
     assert len(encoded) <= len(original)
     assert original == decoded
+
+
+def test_mixed_models():
+    # The data
+    part_1 = (np.random.random(100) < 0.3).tolist()
+    part_2 = (np.random.random(80) < 0.6).tolist()
+
+    # Encode the data
+    model_1_encoder = ProbabilityModel()
+    model_2_encoder = ProbabilityModel()
+    encoded_bitstream = bitarray()
+    encoder = CabacEncoder().start(encoded_bitstream)
+
+    encoder.use_model(model_1_encoder)
+    for i in part_1:
+        encoder.encode_bit(i)
+
+    encoder.use_model(model_2_encoder)
+    for i in part_2:
+        encoder.encode_bit(i)
+
+    encoder.end()
+
+    # Decode the data
+    model_1_decoder = ProbabilityModel()
+    model_2_decoder = ProbabilityModel()
+    decoded_bitstream = bitarray()
+    decoder = CabacDecoder().start(encoded_bitstream, decoded_bitstream)
+
+    decoder.use_model(model_1_decoder)
+    for _ in range(len(part_1)):
+        decoder.decode_bit()
+
+    decoder.use_model(model_2_decoder)
+    for _ in range(len(part_2)):
+        decoder.decode_bit()
+
+    decoder.end()
+
+    assert bitarray(part_1 + part_2) == decoded_bitstream
