@@ -1,9 +1,9 @@
 from typing import Literal
-from collections import deque
 from bitarray import bitarray
+from jpig.entropy.probability_model import ProbabilityModel
 
 
-class Cabac:
+class CabacEncoder:
     """
     Implementation of Context Adaptive Binary Arithmetic Coding (CABAC) algorithm.
     Based on https://github.com/ramenhut/abac/blob/master/cabac.cpp
@@ -23,8 +23,9 @@ class Cabac:
         self.clear()
 
     def clear(self):
-        self.frequency_of_zeros = 1
-        self.frequency_of_ones = 1
+        self.probability_model = ProbabilityModel()
+        # self.probability_model.frequency(0) = 1
+        # self.probability_model.frequency(1) = 1
         self.e3_count = 0
 
         self.low = 0
@@ -61,10 +62,10 @@ class Cabac:
 
         if bit:
             self.low = self.mid + 1
-            self.frequency_of_ones += 1
+            self.probability_model.add_bit(1)
         else:
             self.high = self.mid
-            self.frequency_of_zeros += 1
+            self.probability_model.add_bit(0)
 
         self.resolve_encoder_scaling()
 
@@ -73,12 +74,12 @@ class Cabac:
 
         if self.low <= self.current <= self.mid:
             self.high = self.mid
-            self.frequency_of_zeros += 1
+            self.probability_model.add_bit(0)
             self._result.append(0)
 
         elif self.mid < self.current <= self.high:
             self.low = self.mid + 1
-            self.frequency_of_ones += 1
+            self.probability_model.add_bit(1)
             self._result.append(1)
 
         self.resolve_decoder_scaling()
@@ -90,8 +91,7 @@ class Cabac:
 
     def update_table(self):
         current_range = self.high - self.low
-        encoded_bits = self.frequency_of_zeros + self.frequency_of_ones
-        mid_range = current_range * self.frequency_of_zeros // encoded_bits
+        mid_range = int(current_range * self.probability_model.probability(0))
         self.mid = self.low + mid_range
 
     def resolve_encoder_scaling(self):
