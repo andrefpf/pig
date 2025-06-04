@@ -36,7 +36,8 @@ class MuleEncoder:
         self.upper_bitplane = upper_bitplane
 
         self._clear_models()
-        self.flags, self.estimated_rd = self._optimize_encoding_tree(block, self.upper_bitplane)
+        self.flags, estimated_distortion = self._optimize_encoding_tree(block, self.upper_bitplane)
+        self.estimated_rd = RD(self._estimate_current_rate(), estimated_distortion)
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
@@ -72,67 +73,70 @@ class MuleEncoder:
         else:
             raise ValueError("Invalid encoding")
 
-    def _optimize_encoding_tree(self, block: np.ndarray, bitplane: int) -> tuple[str, RD]:
+    def _optimize_encoding_tree(self, block: np.ndarray, bitplane: int) -> tuple[str, float]:
         if block.size == 1:
-            return "", self._estimate_value_encoding(block, bitplane)
+            self._update_models_with_value(block, bitplane)
+            return "", 0
 
-        proportional_lagrangian = self.lagrangian / block.size
+        lagrangian = self.lagrangian / block.size
 
-        zero_flags, zero_rd = self._estimate_zero_flag(block)
-        zero_cost = zero_rd.cost(proportional_lagrangian)
+        zero_flags, zero_distortion = self._estimate_zero_flag(block)
+        zero_rd = RD(self._estimate_current_rate(), zero_distortion)
         if zero_rd.distortion == 0:
-            return zero_flags, zero_rd
+            return zero_flags, zero_distortion
 
         if self.is_bitplane_zero(block, bitplane):
             self._push_models()
-            lower_bp_flags, lower_bp_rd = self._estimate_lower_bp_flag(block, bitplane)
-            lower_bp_cost = lower_bp_rd.cost(proportional_lagrangian)
-            if lower_bp_cost < zero_cost:
-                return lower_bp_flags, lower_bp_rd
+            lower_bp_flags, lower_bp_distortion = self._estimate_lower_bp_flag(block, bitplane)
+            lower_bp_rd = RD(self._estimate_current_rate(), lower_bp_distortion)
+            if lower_bp_rd.cost(lagrangian) < zero_rd.cost(lagrangian):
+                return lower_bp_flags, lower_bp_distortion
             self._pop_models()
-            return zero_flags, zero_rd
+            return zero_flags, zero_distortion
 
         self._push_models()
-        split_flags, split_rd = self._estimate_split_flag(block, bitplane)
-        split_cost = split_rd.cost(proportional_lagrangian)
-        if split_cost < zero_cost:
-            return split_flags, split_rd
+        split_flags, split_distortion = self._estimate_split_flag(block, bitplane)
+        split_rd = RD(self._estimate_current_rate(), split_distortion)
+        if split_rd.cost(lagrangian) < zero_rd.cost(lagrangian):
+            return split_flags, split_distortion
         self._pop_models()
-        return zero_flags, zero_rd
+        return zero_flags, zero_distortion
 
-    def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, RD]:
-        rate = len(_Z)
+    def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, float]:
         distortion = np.sum(block**2)
-        return "Z", RD(rate, distortion)
+        return "Z", distortion
 
-    def _estimate_lower_bp_flag(self, block: np.ndarray, bitplane: int) -> tuple[str, RD]:
+    def _estimate_lower_bp_flag(self, block: np.ndarray, bitplane: int) -> tuple[str, float]:
         new_bitplane = self.find_max_bitplane(block)
-        flags, rd = self._optimize_encoding_tree(block, new_bitplane)
         number_of_flags = bitplane - new_bitplane
-        rd.rate += len(_L) * number_of_flags
-        return ("L" * number_of_flags + flags), rd
+        flags, distortion = self._optimize_encoding_tree(block, new_bitplane)
+        new_flags = ("L" * number_of_flags + flags)
+        return new_flags, distortion
 
-    def _estimate_split_flag(self, block: np.ndarray, bitplane: int) -> tuple[str, RD]:
-        rd = RD()
-        rd.rate += len(_S)
+    def _estimate_split_flag(self, block: np.ndarray, bitplane: int) -> tuple[str, float]:
+        distortion = 0
         flags = "S"
         for sub_block in split_blocks_in_half(block):
-            current_flags, current_rd = self._optimize_encoding_tree(sub_block, bitplane)
-            rd += current_rd
+            current_flags, current_distortion = self._optimize_encoding_tree(sub_block, bitplane)
+            distortion += current_distortion
             flags += current_flags
-        return flags, rd
+        return flags, distortion
 
-    def _estimate_value_encoding(self, block: np.ndarray, bitplane: int) -> RD:
+    def _update_models_with_value(self, block: np.ndarray, bitplane: int):
         value = block.flatten()[0]
         for i in range(self.lower_bitplane, bitplane):
             model = self.bitplane_probability_models[i]
-            model.add_bit((1 << i) & value)
-        rate = self._estimate_current_rate()
-        return RD(rate, 0)
+            model.add_bit((1 << i) & np.abs(value) != 0)
 
     def _estimate_current_rate(self) -> float:
+        all_models = [
+            self.flags_probability_model,
+            self.signals_probability_model,
+            *self.bitplane_probability_models,
+        ]
+
         total_size = 0
-        for model in self.bitplane_probability_models:
+        for model in all_models:
             total_size += model.total_bits() * model.entropy()
         return total_size
 

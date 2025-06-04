@@ -44,7 +44,7 @@ class MuleDecoder:
 
         flag = self._decode_flag()
         if flag == "Z":
-            pass
+            return
 
         elif flag == "L":
             return self.apply_decoding(block, bitplane - 1)

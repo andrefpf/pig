@@ -53,6 +53,6 @@ class ProbabilityModel:
             return 0
 
         if prob_1 == 0:
-            return 1
+            return 0
 
         return -prob_0 * np.log2(prob_0) - prob_1 * np.log2(prob_1)

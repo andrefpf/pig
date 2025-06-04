@@ -12,11 +12,14 @@ def test_mule_easy():
         ]
     )
 
+    encoder = MuleEncoder()
+    decoder = MuleDecoder()
+
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
     max_bitplane = MuleEncoder.find_max_bitplane(original)
-    encoded = MuleEncoder().encode(original, 0, max_bitplane)
-    decoded = MuleDecoder().decode(encoded, original.shape, max_bitplane)
+    encoded = encoder.encode(original, 0, max_bitplane)
+    decoded = decoder.decode(encoded, original.shape, max_bitplane)
 
     assert np.allclose(original, decoded)
 
