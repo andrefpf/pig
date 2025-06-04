@@ -6,29 +6,48 @@ from jpig.metrics import mse
 
 from scipy.fft import dctn, idctn
 
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
 
 def main():
     img = RawImage().load_file("./datasets/images/cameraman.pgm")
-    img.show()
+    transformed = dctn(img.data, norm="ortho").astype(int)
 
-    max_bitplane = MuleEncoder.find_max_bitplane(img.data)
+    max_bitplane = MuleEncoder.find_max_bitplane(transformed)
     mule_encoder = MuleEncoder()
-    bitstream = mule_encoder.encode(img.data, 0, max_bitplane)
-
-    rate = len(bitstream)
-    print(f"Actual Rate: {rate / 8000} Kb")
-    print(f"Estimated Rate: {mule_encoder.estimated_rd.rate / 8000} Kb")
+    bitstream = mule_encoder.encode(transformed, 100, max_bitplane)
 
     mule_decoder = MuleDecoder()
-    block = mule_decoder.decode(mule_encoder.bitstream, img.data.shape, max_bitplane)
+    transformed_decoded = mule_decoder.decode(mule_encoder.bitstream, transformed.shape, max_bitplane)
 
-    distortion = mse(img.data, block)
-    print(f"MSE: {distortion}")
-    print(f"Estimated MSE: {mule_encoder.estimated_rd.rate / img.number_of_samples()}")
+    decoded = idctn(transformed_decoded, norm="ortho")
 
-    plt.imshow(block, cmap="gray")
+    print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
+    print(f"Actual Rate: {len(bitstream) / 8000:.2f} Kb")
+    print(f"Estimated Rate: {mule_encoder.estimated_rd.rate / 8000:.2f} Kb")
+    print(f"MSE: {mse(img.data, decoded)}")
+    print(f"Estimated MSE: {mule_encoder.estimated_rd.distortion / img.number_of_samples()}")
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+    axes[0].imshow(
+        img.data,
+        vmin=0,
+        vmax=(1 << img.bitdepth),
+        cmap="gray",
+    )
+    axes[0].axis("off")
+    axes[0].set_title("Image 1")
+
+    axes[1].imshow(
+        decoded,
+        vmin=0,
+        vmax=(1 << img.bitdepth),
+        cmap="gray",
+    )
+    axes[1].axis("off")
+    axes[1].set_title("Image 2")
+
     plt.show()
 
 
