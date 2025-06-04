@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    img = RawImage().load_file("./datasets/images/cameraman.bmp")
+    img = RawImage().load_file("./datasets/images/cameraman.pgm")
     img.show()
 
     max_bitplane = MuleEncoder.find_max_bitplane(img.data)

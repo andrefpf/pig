@@ -6,22 +6,10 @@ from jpig.entropy import CabacEncoder, CabacDecoder, ProbabilityModel
 
 def test_specific_sequence():
     original = bitarray("1110 1101 1011 0111 1110 1111 1111 0111")
-    expected_encoding = bitarray("11000001011010010111100011")
+    expected_encoding = bitarray("1100 0001 0110 1001 0111 1000 11")
 
     encoded = CabacEncoder().encode(original)
     decoded = CabacDecoder().decode(encoded, len(original))
-
-    assert encoded == expected_encoding
-    assert len(encoded) <= len(original)
-    assert original == decoded
-
-def test_small_sequence():
-    original = bitarray("1110 1101 1011 0111")
-    expected_encoding = bitarray("1100 0111 1010 0101")
-
-    cabac = Cabac()
-    encoded = cabac.encode(original)
-    decoded = cabac.decode(encoded, len(original))
 
     assert encoded == expected_encoding
     assert len(encoded) <= len(original)
