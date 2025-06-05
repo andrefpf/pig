@@ -1,48 +1,29 @@
-import numpy as np
-
 from jpig.entropy import MuleEncoder, MuleDecoder
 from jpig.media import RawImage
 from jpig.metrics import mse
+from jpig.codecs import WholeImageMule, BlockedMule
 
 from scipy.fft import dctn, idctn
 
 import matplotlib.pyplot as plt
+from jpig.utils.block_utils import split_blocks_equal_size, split_blocks_in_half
 
-
-def main():
-    img = RawImage().load_file("./datasets/images/cameraman.pgm")
-    transformed = dctn(img.data, norm="ortho").astype(int)
-
-    max_bitplane = MuleEncoder.find_max_bitplane(transformed)
-    mule_encoder = MuleEncoder()
-    bitstream = mule_encoder.encode(transformed, 100, max_bitplane)
-
-    mule_decoder = MuleDecoder()
-    transformed_decoded = mule_decoder.decode(mule_encoder.bitstream, transformed.shape, max_bitplane)
-
-    decoded = idctn(transformed_decoded, norm="ortho")
-
-    print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
-    print(f"Actual Rate: {len(bitstream) / 8000:.2f} Kb")
-    print(f"Estimated Rate: {mule_encoder.estimated_rd.rate / 8000:.2f} Kb")
-    print(f"MSE: {mse(img.data, decoded)}")
-    print(f"Estimated MSE: {mule_encoder.estimated_rd.distortion / img.number_of_samples()}")
-
+def compare_data(data1, data2):
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     axes[0].imshow(
-        img.data,
+        data1,
         vmin=0,
-        vmax=(1 << img.bitdepth),
+        vmax=(1 << 8),
         cmap="gray",
     )
     axes[0].axis("off")
     axes[0].set_title("Image 1")
 
     axes[1].imshow(
-        decoded,
+        data2,
         vmin=0,
-        vmax=(1 << img.bitdepth),
+        vmax=(1 << 8),
         cmap="gray",
     )
     axes[1].axis("off")
@@ -50,6 +31,19 @@ def main():
 
     plt.show()
 
+
+def main():
+    img = RawImage().load_file("./datasets/images/cameraman.pgm")
+
+    codec = BlockedMule()
+    bitstream = codec.encode(img.data, 150, 16)
+    decoded = codec.decode(bitstream)
+
+    print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
+    print(f"Rate: {len(bitstream) / 8000:.2f} Kb")
+    print(f"MSE: {mse(img.data, decoded)}")
+    
+    compare_data(img.data, decoded)
 
 if __name__ == "__main__":
     main()
