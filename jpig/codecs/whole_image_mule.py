@@ -3,11 +3,16 @@ from scipy.fft import dctn, idctn
 from jpig.entropy import MuleEncoder, MuleDecoder
 from bitarray import bitarray
 
+import matplotlib.pyplot as plt
+
 
 class WholeImageMule:
     def encode(self, data: np.ndarray, lagrangian: float) -> bitarray:
         transformed: np.ndarray = dctn(data, norm="ortho")
         transformed = transformed.round().astype(int)
+
+        plt.imshow(transformed)
+        plt.show()
         
         max_bitplane = MuleEncoder.find_max_bitplane(transformed)
         mule_encoder = MuleEncoder()
@@ -23,18 +28,22 @@ class WholeImageMule:
 
     def decode(self, codestream: bitarray) -> np.ndarray:
         codestream = codestream.copy()
+        mule_decoder = MuleDecoder()
         
-        ndim, codestream = int.from_bytes(codestream[:8].tobytes()), codestream[8:]
+        ndim = self._consume_bytes(codestream, 8)
         shape = list()
         for _ in range(ndim):
-            size, codestream = int.from_bytes(codestream[:32].tobytes()), codestream[32:]
+            size = self._consume_bytes(codestream, 32)
             shape.append(size)
 
-        max_bitplane, codestream = int.from_bytes(codestream[:8].tobytes()), codestream[32:]
-
-        mule_decoder = MuleDecoder()
+        max_bitplane = self._consume_bytes(codestream, 8)
         transformed_decoded = mule_decoder.decode(codestream, shape, max_bitplane)
 
         decoded: np.ndarray = idctn(transformed_decoded, norm="ortho")
         decoded = decoded.round().astype(int)
         return decoded
+
+    def _consume_bytes(self, codestream: bitarray, number_of_bytes: int) -> bitarray:
+        value = int.from_bytes(codestream[:number_of_bytes].tobytes())
+        codestream[:] = codestream[number_of_bytes:]
+        return value
