@@ -15,6 +15,17 @@ def test_specific_sequence():
     assert len(encoded) <= len(original)
     assert original == decoded
 
+def test_specific_sequence_filling_to_byte():
+    original = bitarray("1110 1101 1011 0111 1110 1111 1111 0111")
+    expected_encoding = bitarray("0000 0011 0000 0101 1010 0101 1110 0011")
+
+    encoded = CabacEncoder().encode(original, fill_to_byte=True)
+    decoded = CabacDecoder().decode(encoded, len(original))
+
+    assert encoded == expected_encoding
+    assert len(encoded) <= len(original)
+    assert original == decoded
+
 def test_more_zeros_than_ones():
     # random sequence of booleans with more zeros than ones
     original = bitarray((np.random.random(100) < 0.2).tolist())
