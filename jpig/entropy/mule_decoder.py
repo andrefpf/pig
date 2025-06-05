@@ -7,8 +7,8 @@ from jpig.utils.block_utils import split_blocks_in_half
 
 class MuleDecoder:
     def __init__(self):
-        self.upper_bitplane = 32
         self.lower_bitplane = 0
+        self.upper_bitplane = 32
 
         self.flags_probability_model = ProbabilityModel()
         self.signals_probability_model = ProbabilityModel()
@@ -17,7 +17,16 @@ class MuleDecoder:
         self.bitstream = bitarray()
         self.cabac = CabacDecoder()
 
-    def decode(self, bitstream: bitarray, shape: tuple[int], upper_bitplane: int = 32):
+    def decode(
+        self,
+        bitstream: bitarray,
+        shape: tuple[int],
+        *,
+        lower_bitplane: int = 0,
+        upper_bitplane: int = 32,
+    ) -> np.ndarray:
+
+        self.lower_bitplane = lower_bitplane
         self.upper_bitplane = upper_bitplane
         block = np.zeros(shape)
 

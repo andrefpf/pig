@@ -1,5 +1,6 @@
 import numpy as np
 from bitarray import bitarray
+from typing import Sequence
 
 from jpig.entropy import CabacEncoder, ProbabilityModel
 from jpig.metrics import RD
@@ -15,8 +16,8 @@ class MuleEncoder:
         self.estimated_rd = RD()
         self.flags = ""
 
-        self.upper_bitplane = 32
         self.lower_bitplane = 0
+        self.upper_bitplane = 32
         self.lagrangian = 10_000
 
         self.flags_probability_model = ProbabilityModel()
@@ -30,13 +31,20 @@ class MuleEncoder:
         self,
         block: np.ndarray,
         lagrangian: float = 10_000,
+        *,
+        lower_bitplane: int = 0,
         upper_bitplane: int = 32,
-    ):
+    ) -> bitarray:
         self.lagrangian = lagrangian
+        self.lower_bitplane = lower_bitplane
         self.upper_bitplane = upper_bitplane
 
         self._clear_models()
-        self.flags, estimated_distortion = self._recursive_optimize_encoding_tree(block, self.upper_bitplane)
+        self.flags, estimated_distortion = self._recursive_optimize_encoding_tree(
+            block,
+            lower_bitplane,
+            upper_bitplane,
+        )
         self.estimated_rd = RD(self._estimate_current_rate(), estimated_distortion)
         self._clear_models()
 
@@ -44,7 +52,7 @@ class MuleEncoder:
         self.apply_encoding(list(self.flags), block, self.upper_bitplane)
         return self.cabac.end()
 
-    def apply_encoding(self, flags: list[str], block: np.ndarray, upper_bitplane: int):
+    def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
         if block.size == 1:
             value = block.flatten()[0]
             for i in range(self.lower_bitplane, upper_bitplane):
@@ -73,9 +81,14 @@ class MuleEncoder:
         else:
             raise ValueError("Invalid encoding")
 
-    def _recursive_optimize_encoding_tree(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, float]:
+    def _recursive_optimize_encoding_tree(
+        self,
+        block: np.ndarray,
+        lower_bitplane: int,
+        upper_bitplane: int,
+    ) -> tuple[str, float]:
         if block.size == 1:
-            self._update_models_with_value(block, upper_bitplane)
+            self._update_models_with_value(block, lower_bitplane, upper_bitplane)
             return "", 0
 
         lagrangian = self.lagrangian / block.size
@@ -87,7 +100,11 @@ class MuleEncoder:
 
         if self.is_bitplane_zero(block, upper_bitplane):
             self._push_models()
-            lower_bp_flags, lower_bp_distortion = self._estimate_lower_bp_flag(block, upper_bitplane)
+            lower_bp_flags, lower_bp_distortion = self._estimate_lower_bp_flag(
+                block,
+                lower_bitplane,
+                upper_bitplane,
+            )
             lower_bp_rd = RD(self._estimate_current_rate(), lower_bp_distortion)
             if lower_bp_rd.cost(lagrangian) < zero_rd.cost(lagrangian):
                 return lower_bp_flags, lower_bp_distortion
@@ -95,7 +112,11 @@ class MuleEncoder:
             return zero_flags, zero_distortion
 
         self._push_models()
-        split_flags, split_distortion = self._estimate_split_flag(block, upper_bitplane)
+        split_flags, split_distortion = self._estimate_split_flag(
+            block,
+            lower_bitplane,
+            upper_bitplane,
+        )
         split_rd = RD(self._estimate_current_rate(), split_distortion)
         if split_rd.cost(lagrangian) < zero_rd.cost(lagrangian):
             return split_flags, split_distortion
@@ -106,25 +127,38 @@ class MuleEncoder:
         distortion = np.sum(block.astype(np.int64) ** 2)
         return "Z", distortion
 
-    def _estimate_lower_bp_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, float]:
+    def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, float]:
         new_bitplane = self.find_max_bitplane(block)
         number_of_flags = upper_bitplane - new_bitplane
-        flags, distortion = self._recursive_optimize_encoding_tree(block, new_bitplane)
-        new_flags = ("L" * number_of_flags + flags)
+        flags, distortion = self._recursive_optimize_encoding_tree(
+            block,
+            lower_bitplane,
+            new_bitplane,
+        )
+        new_flags = "L" * number_of_flags + flags
         return new_flags, distortion
 
-    def _estimate_split_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, float]:
+    def _estimate_split_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, float]:
         distortion = 0
         flags = "S"
         for sub_block in split_blocks_in_half(block):
-            current_flags, current_distortion = self._recursive_optimize_encoding_tree(sub_block, upper_bitplane)
+            current_flags, current_distortion = self._recursive_optimize_encoding_tree(
+                sub_block,
+                lower_bitplane,
+                upper_bitplane,
+            )
             distortion += current_distortion
             flags += current_flags
         return flags, distortion
 
-    def _update_models_with_value(self, block: np.ndarray, upper_bitplane: int):
+    def _update_models_with_value(
+        self,
+        block: np.ndarray,
+        lower_bitplane: int,
+        upper_bitplane: int,
+    ):
         value = block.flatten()[0]
-        for i in range(self.lower_bitplane, upper_bitplane):
+        for i in range(lower_bitplane, upper_bitplane):
             model = self.bitplane_probability_models[i]
             model.add_bit((1 << i) & np.abs(value) != 0)
 
