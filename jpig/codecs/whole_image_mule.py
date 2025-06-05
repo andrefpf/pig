@@ -3,16 +3,11 @@ from scipy.fft import dctn, idctn
 from jpig.entropy import MuleEncoder, MuleDecoder
 from bitarray import bitarray
 
-import matplotlib.pyplot as plt
-
 
 class WholeImageMule:
     def encode(self, data: np.ndarray, lagrangian: float) -> bitarray:
         transformed: np.ndarray = dctn(data, norm="ortho")
         transformed = transformed.round().astype(int)
-
-        plt.imshow(transformed)
-        plt.show()
         
         max_bitplane = MuleEncoder.find_max_bitplane(transformed)
         mule_encoder = MuleEncoder()
