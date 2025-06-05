@@ -37,7 +37,7 @@ class CabacDecoder:
         self.probability_model = model
 
     def decode(self, bits: bitarray, size: int):
-        self.start(bits.copy())
+        self.start(bits)
 
         for _ in range(size):
             self.decode_bit()
@@ -83,6 +83,7 @@ class CabacDecoder:
 
     # Internal use
     def _read_first_word(self):
+        bit = 0
         for _ in range(self.entropy_precision):
             if self.buffer:
                 bit = self.buffer.pop()
