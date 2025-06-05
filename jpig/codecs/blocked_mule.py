@@ -3,13 +3,12 @@ from scipy.fft import dctn, idctn
 from jpig.entropy import MuleEncoder, MuleDecoder
 from bitarray import bitarray
 from jpig.utils.block_utils import split_blocks_equal_size
-from itertools import pairwise
+from math import ceil
 
 
 class BlockedMule:
     def encode(self, data: np.ndarray, lagrangian: float, block_size: int = 8) -> bitarray:
-
-        max_bitplane = 32
+        max_bitplane = ceil(np.log2(np.max(data.astype(np.int64)) ** data.ndim))
 
         bitstream = bitarray()
         block_encoded_sizes = []
