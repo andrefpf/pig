@@ -103,7 +103,7 @@ class MuleEncoder:
         return zero_flags, zero_distortion
 
     def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, float]:
-        distortion = np.sum(block**2)
+        distortion = np.sum(block.astype(np.int64) ** 2)
         return "Z", distortion
 
     def _estimate_lower_bp_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, float]:
