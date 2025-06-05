@@ -88,8 +88,8 @@ class MuleEncoder:
         upper_bitplane: int,
     ) -> tuple[str, float]:
         if block.size == 1:
-            distortion = self._update_models_with_value(block, lower_bitplane, upper_bitplane)
-            return "", distortion
+            self._update_models_with_value(block, lower_bitplane, upper_bitplane)
+            return "", 0
 
         lagrangian = self.lagrangian / block.size
 
@@ -156,15 +156,11 @@ class MuleEncoder:
         block: np.ndarray,
         lower_bitplane: int,
         upper_bitplane: int,
-    ) -> float:
+    ):
         value = block.flatten()[0]
-        actually_encoded = int()
         for i in range(lower_bitplane, upper_bitplane):
-            bit = (1 << i) & np.abs(value) != 0
             model = self.bitplane_probability_models[i]
-            model.add_bit(bit)
-            actually_encoded |= bit << i
-        return (value - actually_encoded) ** 2
+            model.add_bit((1 << i) & np.abs(value) != 0)
 
     def _estimate_current_rate(self) -> float:
         all_models = [
@@ -172,7 +168,11 @@ class MuleEncoder:
             self.signals_probability_model,
             *self.bitplane_probability_models,
         ]
-        return sum([model.estimated_rate() for model in all_models])
+
+        total_size = 0
+        for model in all_models:
+            total_size += model.total_bits() * model.entropy()
+        return total_size
 
     def _push_models(self):
         for model in self.bitplane_probability_models:
