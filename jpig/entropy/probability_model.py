@@ -56,3 +56,6 @@ class ProbabilityModel:
             return 0
 
         return -prob_0 * np.log2(prob_0) - prob_1 * np.log2(prob_1)
+
+    def estimated_rate(self) -> float:
+        return self.entropy() * self.total_bits()
