@@ -42,7 +42,7 @@ class MuleEncoder:
 
         self.cabac.start(result=self.bitstream)
         self.apply_encoding(list(self.flags), block, self.upper_bitplane)
-        return self.cabac.end()
+        return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: list[str], block: np.ndarray, bitplane: int):
         if block.size == 1:
