@@ -36,13 +36,13 @@ class CabacEncoder:
     def use_model(self, model: ProbabilityModel):
         self.probability_model = model
 
-    def encode(self, bits: bitarray):
+    def encode(self, bits: bitarray, fill_to_byte: bool = False):
         self.start()
 
         for bit in bits:
             self.encode_bit(bit)
 
-        return self.end()
+        return self.end(fill_to_byte)
 
     def start(self, result: bitarray | None = None):
         self.clear()
@@ -71,8 +71,10 @@ class CabacEncoder:
 
         self._resolve_scaling()
 
-    def end(self):
+    def end(self, fill_to_byte: bool = False):
         self._flush()
+        if fill_to_byte:
+            self.result.fill()
         self.result.reverse()
         return self.result
 

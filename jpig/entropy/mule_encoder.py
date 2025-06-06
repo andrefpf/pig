@@ -50,7 +50,7 @@ class MuleEncoder:
 
         self.cabac.start(result=self.bitstream)
         self.apply_encoding(list(self.flags), block, self.upper_bitplane)
-        return self.cabac.end()
+        return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
         if block.size == 1:
@@ -171,7 +171,7 @@ class MuleEncoder:
 
         total_size = 0
         for model in all_models:
-            total_size += model.total_bits() * model.entropy()
+            total_size += model.estimated_rate()
         return total_size
 
     def _push_models(self):
