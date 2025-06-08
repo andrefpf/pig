@@ -36,11 +36,17 @@ class CabacDecoder:
     def use_model(self, model: FrequentistPM):
         self.probability_model = model
 
-    def decode(self, bits: bitarray, size: int):
+    def decode(
+        self,
+        bits: bitarray,
+        size: int,
+        *,
+        model: FrequentistPM | None = None,
+    ):
         self.start(bits)
 
         for _ in range(size):
-            self.decode_bit()
+            self.decode_bit(model=model)
 
         return self.end()
 

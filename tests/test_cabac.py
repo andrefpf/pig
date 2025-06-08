@@ -1,7 +1,7 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder, CabacDecoder, FrequentistPM
+from jpig.entropy import CabacEncoder, CabacDecoder, FrequentistPM, ExponentialSmoothingPM
 
 
 def test_specific_sequence():
@@ -15,6 +15,7 @@ def test_specific_sequence():
     assert len(encoded) <= len(original)
     assert original == decoded
 
+
 def test_specific_sequence_filling_to_byte():
     original = bitarray("1110 1101 1011 0111 1110 1111 1111 0111")
     expected_encoding = bitarray("0000 0011 0000 0101 1010 0101 1110 0011")
@@ -25,6 +26,7 @@ def test_specific_sequence_filling_to_byte():
     assert encoded == expected_encoding
     assert len(encoded) <= len(original)
     assert original == decoded
+
 
 def test_more_zeros_than_ones():
     # random sequence of booleans with more zeros than ones
@@ -97,3 +99,20 @@ def test_mixed_models():
     assert bitarray(part_1 + part_2 + part_3) == decoded_bitstream
     for e, d in zip(encoder_models, decoder_models):
         assert e == d
+
+
+def compare_probability_models(self):
+    original = bitarray("0" * 1000 + "1" * 1000)
+
+    encoded_1 = CabacEncoder().encode(original, model=FrequentistPM())
+    encoded_2 = CabacEncoder().encode(original, model=ExponentialSmoothingPM())
+
+    # A frequentist approach strugles to adapt with
+    # sudden changes on probability 
+    assert len(encoded_2) < len(encoded_1)
+
+    decoded_1 = CabacDecoder().decode(encoded_1, len(original), model=FrequentistPM())
+    decoded_2 = CabacDecoder().decode(encoded_2, len(original), model=ExponentialSmoothingPM())
+
+    assert original == decoded_1
+    assert original == decoded_2

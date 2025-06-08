@@ -1,12 +1,15 @@
-from jpig.entropy import MuleEncoder, MuleDecoder
+from jpig.entropy import MuleEncoder, MuleDecoder, CabacEncoder, CabacDecoder, FrequentistPM, ExponentialSmoothingPM
 from jpig.media import RawImage
-from jpig.metrics import mse
+from jpig.metrics import mse, psnr
 from jpig.codecs import WholeImageMule, BlockedMule
+from bitarray import bitarray
 
 from scipy.fft import dctn, idctn
+import numpy as np
 
 import matplotlib.pyplot as plt
 from jpig.utils.block_utils import split_blocks_equal_size, split_blocks_in_half
+
 
 def compare_data(data1, data2):
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
@@ -36,14 +39,16 @@ def main():
     img = RawImage().load_file("./datasets/images/cameraman.pgm")
 
     codec = BlockedMule()
-    bitstream = codec.encode(img.data, 150, 16)
+    bitstream = codec.encode(img.data, 0, 8)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
     print(f"Rate: {len(bitstream) / 8000:.2f} Kb")
     print(f"MSE: {mse(img.data, decoded)}")
-    
+    print(f"PSNR: {psnr(img.data, decoded, img.bitdepth)}")
+
     compare_data(img.data, decoded)
+
 
 if __name__ == "__main__":
     main()
