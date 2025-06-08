@@ -1,4 +1,4 @@
-from .probability_model import ProbabilityModel
+from .frequentist_probability_model import FrequentistProbabilityModel
 from .cabac_encoder import CabacEncoder
 from .cabac_decoder import CabacDecoder
 from .mule_encoder import MuleEncoder
@@ -9,5 +9,5 @@ __all__ = [
     "CabacDecoder",
     "MuleEncoder",
     "MuleDecoder",
-    "ProbabilityModel",
+    "FrequentistProbabilityModel",
 ]

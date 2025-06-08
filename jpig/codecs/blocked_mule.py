@@ -13,10 +13,21 @@ class BlockedMule:
         bitstream = bitarray()
         block_encoded_sizes = []
         for block in split_blocks_equal_size(data, block_size):
+            quality = 11
+            height, width = block.shape
+            y, x = np.mgrid[:height, :width]
+            quantization = (x + 1) * (y + 1) / (width * height * (quality / 100)**2)
+            quantization[quantization < 1] = 1
+
             mule_encoder = MuleEncoder()
             transformed_block: np.ndarray = dctn(block, norm="ortho")
+            transformed_block /= quantization
             transformed_block = transformed_block.round().astype(int)
-            block_bitstream = mule_encoder.encode(transformed_block, lagrangian, max_bitplane)
+            block_bitstream = mule_encoder.encode(
+                transformed_block,
+                lagrangian,
+                upper_bitplane=max_bitplane,
+            )
             bitstream += block_bitstream
             block_encoded_sizes.append(len(block_bitstream) // 8)
 
@@ -34,7 +45,7 @@ class BlockedMule:
         return header + bitstream
 
     def decode(self, codestream: bitarray) -> np.ndarray:
-        codestream = codestream.copy()        
+        codestream = codestream.copy()
         ndim = self._consume_bytes(codestream, 8)
         shape = list()
         for _ in range(ndim):
@@ -60,9 +71,19 @@ class BlockedMule:
 
         decoded = np.zeros(shape, dtype=int)
         for bitstream, block in zip(bitstreams, split_blocks_equal_size(decoded, block_size)):
+            quality = 11
+            height, width = block.shape
+            y, x = np.mgrid[:height, :width]
+            quantization = (x + 1) * (y + 1) / (width * height * (quality / 100)**2)
+            quantization[quantization < 1] = 1
+
             mule_decoder = MuleDecoder()
-            transformed_block = mule_decoder.decode(bitstream, block.shape, max_bitplane)
-            decoded_block: np.ndarray = idctn(transformed_block, norm="ortho")
+            transformed_block = mule_decoder.decode(
+                bitstream,
+                block.shape,
+                upper_bitplane=max_bitplane,
+            )
+            decoded_block: np.ndarray = idctn(transformed_block * quantization, norm="ortho")
             decoded_block = decoded_block.round().astype(int)
             block[:] = decoded_block
 

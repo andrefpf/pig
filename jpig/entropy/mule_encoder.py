@@ -2,7 +2,7 @@ import numpy as np
 from bitarray import bitarray
 from typing import Sequence
 
-from jpig.entropy import CabacEncoder, ProbabilityModel
+from jpig.entropy import CabacEncoder, FrequentistProbabilityModel
 from jpig.metrics import RD
 from jpig.utils.block_utils import split_blocks_in_half
 
@@ -20,9 +20,9 @@ class MuleEncoder:
         self.upper_bitplane = 32
         self.lagrangian = 10_000
 
-        self.flags_probability_model = ProbabilityModel()
-        self.signals_probability_model = ProbabilityModel()
-        self.bitplane_probability_models = [ProbabilityModel() for _ in range(32)]
+        self.flags_probability_model = FrequentistProbabilityModel()
+        self.signals_probability_model = FrequentistProbabilityModel()
+        self.bitplane_probability_models = [FrequentistProbabilityModel() for _ in range(32)]
 
         self.bitstream = bitarray()
         self.cabac = CabacEncoder()

@@ -2,7 +2,7 @@ from typing import Literal
 
 from bitarray import bitarray
 
-from jpig.entropy.probability_model import ProbabilityModel
+from jpig.entropy.frequentist_probability_model import FrequentistProbabilityModel
 
 
 class CabacEncoder:
@@ -25,7 +25,7 @@ class CabacEncoder:
         self.clear()
 
     def clear(self):
-        self.probability_model = ProbabilityModel()
+        self.probability_model = FrequentistProbabilityModel()
         self.result = bitarray()
 
         self.low = 0
@@ -33,7 +33,7 @@ class CabacEncoder:
         self.high = self._full_range
         self.e3_count = 0
 
-    def use_model(self, model: ProbabilityModel):
+    def use_model(self, model: FrequentistProbabilityModel):
         self.probability_model = model
 
     def encode(self, bits: bitarray, fill_to_byte: bool = False):
@@ -55,7 +55,7 @@ class CabacEncoder:
         self,
         bit: bool | Literal[0, 1],
         *,
-        model: ProbabilityModel | None = None,
+        model: FrequentistProbabilityModel | None = None,
     ):
         if model is not None:
             self.use_model(model)

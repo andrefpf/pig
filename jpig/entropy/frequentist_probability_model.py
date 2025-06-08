@@ -5,7 +5,7 @@ import numpy as np
 
 
 @dataclass
-class ProbabilityModel:
+class FrequentistProbabilityModel:
     frequency_of_zeros: int = 1
     frequency_of_ones: int = 1
     _stack: list[tuple[int, int]] = field(default_factory=list)

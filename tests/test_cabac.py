@@ -1,7 +1,7 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder, CabacDecoder, ProbabilityModel
+from jpig.entropy import CabacEncoder, CabacDecoder, FrequentistProbabilityModel
 
 
 def test_specific_sequence():
@@ -55,15 +55,15 @@ def test_mixed_models():
     part_3 = (np.random.random(80) < 0.8).tolist()
 
     encoder_models = [
-        ProbabilityModel(),
-        ProbabilityModel(),
-        ProbabilityModel(),
+        FrequentistProbabilityModel(),
+        FrequentistProbabilityModel(),
+        FrequentistProbabilityModel(),
     ]
 
     decoder_models = [
-        ProbabilityModel(),
-        ProbabilityModel(),
-        ProbabilityModel(),
+        FrequentistProbabilityModel(),
+        FrequentistProbabilityModel(),
+        FrequentistProbabilityModel(),
     ]
 
     # Encode the data
