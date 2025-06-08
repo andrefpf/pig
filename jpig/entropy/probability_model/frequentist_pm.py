@@ -4,8 +4,10 @@ from typing import Literal
 import numpy as np
 
 
+from ._probability_model import ProbabilityModel
+
 @dataclass
-class FrequentistProbabilityModel:
+class FrequentistPM(ProbabilityModel):
     frequency_of_zeros: int = 1
     frequency_of_ones: int = 1
     _stack: list[tuple[int, int]] = field(default_factory=list)

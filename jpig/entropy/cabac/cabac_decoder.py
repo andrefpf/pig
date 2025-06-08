@@ -1,6 +1,6 @@
 from bitarray import bitarray
 
-from jpig.entropy.frequentist_probability_model import FrequentistProbabilityModel
+from jpig.entropy.probability_model.frequentist_pm import FrequentistPM
 
 
 class CabacDecoder:
@@ -22,7 +22,7 @@ class CabacDecoder:
         self.clear()
 
     def clear(self):
-        self.probability_model = FrequentistProbabilityModel()
+        self.probability_model = FrequentistPM()
         self.current: int = 0
         self.read_bits: int = 0
 
@@ -33,7 +33,7 @@ class CabacDecoder:
         self.mid = self._half_range
         self.high = self._full_range
 
-    def use_model(self, model: FrequentistProbabilityModel):
+    def use_model(self, model: FrequentistPM):
         self.probability_model = model
 
     def decode(self, bits: bitarray, size: int):
@@ -53,7 +53,7 @@ class CabacDecoder:
         self._read_first_word()
         return self
 
-    def decode_bit(self, *, model: FrequentistProbabilityModel | None = None):
+    def decode_bit(self, *, model: FrequentistPM | None = None):
         if model is not None:
             self.use_model(model)
 
