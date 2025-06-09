@@ -21,6 +21,7 @@ def test_mule_easy():
     encoded = encoder.encode(original, 0, lower_bitplane=0, upper_bitplane=max_bitplane)
     decoded = decoder.decode(encoded, original.shape, lower_bitplane=0, upper_bitplane=max_bitplane)
 
+    assert encoder.flags == "SSLLSZLLS"
     assert np.allclose(original, decoded)
 
 
