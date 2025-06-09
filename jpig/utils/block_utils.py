@@ -1,10 +1,11 @@
 import numpy as np
 from itertools import product, pairwise
+from typing import Generator
 
 
-def split_blocks_in_half(block: np.ndarray) -> list[np.ndarray]:
+def split_shape_in_half(shape: tuple[int]) -> list[slice]:
     slices_per_dimension = []
-    for size in block.shape:
+    for size in shape:
         half = size // 2
 
         if half == 0:
@@ -14,12 +15,13 @@ def split_blocks_in_half(block: np.ndarray) -> list[np.ndarray]:
 
         slices_per_dimension.append(slices)
 
-    split_blocks = []
     for slices in product(*slices_per_dimension):
-        split_block = block[*slices]
-        split_blocks.append(split_block)
+        yield slices
 
-    return split_blocks
+
+def split_blocks_in_half(block: np.ndarray) -> Generator[np.ndarray]:
+    for slices in split_shape_in_half(block.shape):
+        yield block[slices]
 
 
 def split_blocks_equal_size(block: np.ndarray, block_size: int) -> list[np.ndarray]:
