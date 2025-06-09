@@ -5,6 +5,7 @@ from .cabac.cabac_encoder import CabacEncoder
 from .cabac.cabac_decoder import CabacDecoder
 from .mule.mule_encoder import MuleEncoder
 from .mule.mule_decoder import MuleDecoder
+from .mico.mico_encoder import MicoEncoder
 # fmt: on
 
 __all__ = [
