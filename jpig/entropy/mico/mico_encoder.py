@@ -2,7 +2,7 @@ import numpy as np
 from bitarray import bitarray
 from typing import Sequence
 
-from jpig.entropy import CabacEncoder, FrequentistPM, ExponentialSmoothingPM
+from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD
 from jpig.utils.block_utils import split_shape_in_half, bigger_possible_slice
 
@@ -24,10 +24,10 @@ class MicoEncoder:
         self.upper_bitplane = 32
         self.lagrangian = 10_000
 
-        self.flags_model = ExponentialSmoothingPM()
-        self.bitplane_sizes_model = ExponentialSmoothingPM()
-        self.signals_probability_model = ExponentialSmoothingPM()
-        self.bitplane_probability_models = [ExponentialSmoothingPM() for _ in range(32)]
+        self.flags_model = FrequentistPM()
+        self.signals_model = FrequentistPM()
+        self.bitplane_sizes_model = FrequentistPM()
+        self.bitplane_models = [FrequentistPM() for _ in range(32)]
 
         self.bitstream = bitarray()
         self.cabac = CabacEncoder()
@@ -45,15 +45,19 @@ class MicoEncoder:
         self.lagrangian = lagrangian
         self.upper_bitplane = upper_bitplane
 
-        self.bitplane_sizes = self.calculate_bitplane_sizes()
-        # self.encode_bitplane_sizes()
+        self.bitplane_sizes = self._calculate_bitplane_sizes()
+        # self._encode_bitplane_sizes()
+
+        flags, _ = self._recursive_optimize_encoding_tree(bigger_possible_slice(block.shape))
+        self._clear_models()
 
         self.cabac.start(result=self.bitstream)
-        self.apply_encoding(list("CCCCCCCZCZZZCCCCC"), bigger_possible_slice(block.shape))
+        self.apply_encoding(list(flags), bigger_possible_slice(block.shape))
         return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: list[str], block_position: tuple[slice]):
         flag = flags.pop(0)
+
         if flag not in ["Z", "C"]:
             raise ValueError("Invalid encoding")
 
@@ -64,7 +68,7 @@ class MicoEncoder:
         self.cabac.encode_bit(1, model=self.flags_model)
         sub_block = self.block[block_position]
         if sub_block.size > 1:
-            for sub_pos in split_shape_in_half(sub_block.shape):
+            for sub_pos in split_shape_in_half(block_position):
                 self.apply_encoding(flags, sub_pos)
             return
 
@@ -72,23 +76,60 @@ class MicoEncoder:
         value = sub_block.flatten()[0]
         for i in range(0, bitplane):
             bit = (1 << i) & np.abs(value) != 0
-            self.cabac.encode_bit(bit, model=self.bitplane_probability_models[i])
-        self.cabac.encode_bit(value < 0, model=self.signals_probability_model)
+            self.cabac.encode_bit(bit, model=self.bitplane_models[i])
+        self.cabac.encode_bit(value < 0, model=self.signals_model)
 
-    def encode_bitplane_sizes(self):
+    def _recursive_optimize_encoding_tree(self, block_position: tuple[slice]) -> tuple[str, float]:
+        sub_block = self.block[block_position]
+
+        zero_rd = RD(
+            rate=1,
+            distortion=np.sum(sub_block**2),
+        )
+
+        if zero_rd.distortion == 0:
+            self.flags_model.add_bit(0)
+            return "Z", 0
+
+        if sub_block.size == 1:
+            value = sub_block.flatten()[0]
+            bitplane = self._get_bitplane(block_position)
+            for i in range(bitplane):
+                model = self.bitplane_models[i]
+                model.add_bit((1 << i) & np.abs(value) != 0)
+            return "C", 0
+
+        self._push_models()
+        continue_rd = RD(1, 0)
+        continue_flags = "C"
+        self.flags_model.add_bit(1)
+
+        for sub_pos in split_shape_in_half(block_position):
+            current_flags, distortion = self._recursive_optimize_encoding_tree(sub_pos)
+            continue_flags += current_flags
+            continue_rd.distortion += distortion
+        continue_rd.rate = self._estimate_current_rate()
+
+        continue_cost = continue_rd.cost(self.lagrangian / sub_block.size)
+        zero_cost = zero_rd.cost(self.lagrangian / sub_block.size)
+
+        if continue_cost < zero_cost:
+            return continue_flags, continue_rd.distortion
+        else:
+            self._pop_models()
+            self.flags_model.add_bit(0)
+            return "Z", 0
+
+    def _encode_bitplane_sizes(self):
         last_size = 0
         for size in reversed(self.bitplane_sizes):
             difference = size - last_size
-            for i in range(difference):
+            for _ in range(difference):
                 self.cabac.encode_bit(1, model=self.bitplane_sizes_model)
             self.cabac.encode_bit(0, model=self.bitplane_sizes_model)
             last_size = size
 
-    def _get_bitplane(self, block_position: tuple[slice]):
-        level = max(s.stop for s in block_position)
-        return self.bitplane_sizes[level]
-
-    def calculate_bitplane_sizes(self):
+    def _calculate_bitplane_sizes(self):
         tmp_block = self.block.copy()
         bitplane_sizes = []
 
@@ -100,6 +141,36 @@ class MicoEncoder:
             bitplane_sizes.append(bp)
 
         return bitplane_sizes
+
+    def _get_bitplane(self, block_position: tuple[slice]):
+        level = max(s.start for s in block_position)
+        return self.bitplane_sizes[level]
+
+    def _push_models(self):
+        for model in self.probability_models():
+            model.push()
+
+    def _pop_models(self):
+        for model in self.probability_models():
+            model.pop()
+
+    def _clear_models(self):
+        for model in self.probability_models():
+            model.clear()
+
+    def _estimate_current_rate(self) -> float:
+        total_size = 0
+        for model in self.probability_models():
+            total_size += model.estimated_rate()
+        return total_size
+
+    def probability_models(self):
+        return [
+            self.flags_model,
+            self.signals_model,
+            self.bitplane_sizes_model,
+            *self.bitplane_models,
+        ]
 
     @staticmethod
     def find_max_bitplane(block: np.ndarray):
