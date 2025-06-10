@@ -175,16 +175,23 @@ class MuleEncoder:
         return total_size
 
     def _push_models(self):
-        for model in self.bitplane_probability_models:
+        for model in self.probability_models():
             model.push()
 
     def _pop_models(self):
-        for model in self.bitplane_probability_models:
+        for model in self.probability_models():
             model.pop()
 
     def _clear_models(self):
-        for model in self.bitplane_probability_models:
+        for model in self.probability_models():
             model.clear()
+    
+    def probability_models(self):
+        return [
+            self.flags_probability_model,
+            self.signals_probability_model,
+            *self.bitplane_probability_models
+        ]
 
     @staticmethod
     def find_max_bitplane(block: np.ndarray):
