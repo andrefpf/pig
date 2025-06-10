@@ -27,13 +27,6 @@ def test_mule_easy():
         ]
     )  # fmt: skip
 
-    original = np.array(
-        [
-            [12, 8],
-            [-7, 3],
-        ]
-    )  # fmt: skip
-
     encoder = MicoEncoder()
     decoder = MicoDecoder()
 
@@ -41,9 +34,8 @@ def test_mule_easy():
     # i.e. without introducing losses
     max_bitplane = MicoEncoder.find_max_bitplane(original)
     encoded = encoder.encode(original, 0, upper_bitplane=max_bitplane)
+    decoder.bitplane_sizes = encoder.bitplane_sizes
     decoded = decoder.decode(encoded, original.shape, upper_bitplane=max_bitplane)
 
-    print(decoded)
-
-    # assert encoder.flags == "SSLLSZLLS"
-    # assert np.allclose(original, decoded)
+    assert encoder.flags == "CCCCCCCZCZZZCCCCC"
+    assert np.allclose(original, decoded)

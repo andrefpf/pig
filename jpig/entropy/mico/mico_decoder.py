@@ -31,7 +31,6 @@ class MicoDecoder:
 
         self.upper_bitplane = upper_bitplane
         self.block = np.zeros(shape, dtype=np.int32)
-        self.bitplane_sizes = [4, 4, 2, 2]
 
         self.cabac.start(bitstream)
         self.apply_decoding(bigger_possible_slice(shape))

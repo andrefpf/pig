@@ -48,11 +48,11 @@ class MicoEncoder:
         self.bitplane_sizes = self._calculate_bitplane_sizes()
         # self._encode_bitplane_sizes()
 
-        flags, _ = self._recursive_optimize_encoding_tree(bigger_possible_slice(block.shape))
+        self.flags, _ = self._recursive_optimize_encoding_tree(bigger_possible_slice(block.shape))
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
-        self.apply_encoding(list(flags), bigger_possible_slice(block.shape))
+        self.apply_encoding(list(self.flags), bigger_possible_slice(block.shape))
         return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: list[str], block_position: tuple[slice]):
