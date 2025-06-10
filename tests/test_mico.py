@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from jpig.entropy import MicoDecoder, MicoEncoder
 
@@ -32,19 +33,16 @@ def test_mule_easy():
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
-    max_bitplane = MicoEncoder.find_max_bitplane(original)
     encoded = encoder.encode(
         original,
-        0,
-        upper_bitplane=max_bitplane,
+        lagrangian=0,
     )
-    decoder.bitplane_sizes = encoder.bitplane_sizes
     decoded = decoder.decode(
         encoded,
         original.shape,
-        upper_bitplane=max_bitplane,
     )
 
+    assert encoder.bitplane_sizes == decoder.bitplane_sizes
     assert encoder.flags == "CCCCCCCZCZZZCCCCC"
     assert np.allclose(original, decoded)
 
@@ -57,17 +55,14 @@ def test_mule_random():
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
-    max_bitplane = MicoEncoder.find_max_bitplane(original)
     encoded = encoder.encode(
         original,
-        0,
-        upper_bitplane=max_bitplane,
+        lagrangian=0,
     )
-    decoder.bitplane_sizes = encoder.bitplane_sizes
     decoded = decoder.decode(
         encoded,
         original.shape,
-        upper_bitplane=max_bitplane,
     )
 
+    assert encoder.bitplane_sizes == decoder.bitplane_sizes
     assert np.allclose(original, decoded)

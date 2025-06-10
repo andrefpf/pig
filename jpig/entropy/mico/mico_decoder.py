@@ -16,6 +16,7 @@ class MicoDecoder:
 
         self.flags_model = FrequentistPM()
         self.signals_model = FrequentistPM()
+        self.bitplane_sizes_model = FrequentistPM()
         self.bitplane_models = [FrequentistPM() for _ in range(32)]
 
         self.bitstream = bitarray()
@@ -32,6 +33,7 @@ class MicoDecoder:
         self.block = np.zeros(shape, dtype=np.int32)
 
         self.cabac.start(bitstream)
+        self.decode_bitplane_sizes()
         self.apply_decoding(bigger_possible_slice(shape))
         self.cabac.end()
         return self.block
@@ -60,6 +62,15 @@ class MicoDecoder:
             value = -value
 
         self.block[block_position] = value
+
+    def decode_bitplane_sizes(self):
+        self.bitplane_sizes = []
+        counter = 0
+        for _ in range(max(self.block.shape)):
+            while self.cabac.decode_bit(model=self.bitplane_sizes_model):
+                counter += 1
+            self.bitplane_sizes.append(counter)
+        self.bitplane_sizes.reverse()
 
     def _decode_flag(self):
         flag = self.cabac.decode_bit(model=self.flags_model)

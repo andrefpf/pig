@@ -19,8 +19,6 @@ class MicoEncoder:
         self.flags = ""
         self.block = np.array([])
         self.bitplane_sizes = []
-
-        self.upper_bitplane = 32
         self.lagrangian = 10_000
 
         self.flags_model = FrequentistPM()
@@ -35,24 +33,20 @@ class MicoEncoder:
         self,
         block: np.ndarray,
         lagrangian: float = 10_000,
-        *,
-        upper_bitplane: int = 32,
     ) -> bitarray:
         self.clear()
 
         self.block = block
         self.lagrangian = lagrangian
-        self.upper_bitplane = upper_bitplane
 
         self.bitplane_sizes = self._calculate_bitplane_sizes()
-        # self._encode_bitplane_sizes()
-
         self.flags, _ = self._recursive_optimize_encoding_tree(
             bigger_possible_slice(block.shape)
         )
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
+        self.encode_bitplane_sizes()
         self.apply_encoding(list(self.flags), bigger_possible_slice(block.shape))
         return self.cabac.end(fill_to_byte=True)
 
@@ -123,7 +117,7 @@ class MicoEncoder:
             self.flags_model.add_bit(0)
             return "Z", 0
 
-    def _encode_bitplane_sizes(self):
+    def encode_bitplane_sizes(self):
         last_size = 0
         for size in reversed(self.bitplane_sizes):
             difference = size - last_size
