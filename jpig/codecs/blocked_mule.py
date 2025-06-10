@@ -70,7 +70,9 @@ class BlockedMule:
             last_pos = end
 
         decoded = np.zeros(shape, dtype=int)
-        for bitstream, block in zip(bitstreams, split_blocks_equal_size(decoded, block_size)):
+        for bitstream, block in zip(
+            bitstreams, split_blocks_equal_size(decoded, block_size)
+        ):
             mule_decoder = MuleDecoder()
             transformed_block = mule_decoder.decode(
                 bitstream,

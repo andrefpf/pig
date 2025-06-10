@@ -71,9 +71,7 @@ class BlockedMico:
                 bitstream,
                 block.shape,
             )
-            decoded_block: np.ndarray = idctn(
-                transformed_block, norm="ortho"
-            )
+            decoded_block: np.ndarray = idctn(transformed_block, norm="ortho")
             decoded_block = decoded_block.round().astype(int)
             block[:] = decoded_block
 

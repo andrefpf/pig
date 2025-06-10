@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from jpig.codecs import BlockedMule, BlockedMico
+from jpig.codecs import BlockedMico, BlockedMule
 from jpig.media import RawImage
 from jpig.metrics import mse, psnr
 
