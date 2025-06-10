@@ -101,14 +101,14 @@ def test_mixed_models():
         assert e == d
 
 
-def compare_probability_models(self):
+def compare_probability_models():
     original = bitarray("0" * 1000 + "1" * 1000)
 
     encoded_1 = CabacEncoder().encode(original, model=FrequentistPM())
     encoded_2 = CabacEncoder().encode(original, model=ExponentialSmoothingPM())
 
     # A frequentist approach strugles to adapt with
-    # sudden changes on probability 
+    # sudden changes on probability
     assert len(encoded_2) < len(encoded_1)
 
     decoded_1 = CabacDecoder().decode(encoded_1, len(original), model=FrequentistPM())
@@ -116,3 +116,27 @@ def compare_probability_models(self):
 
     assert original == decoded_1
     assert original == decoded_2
+
+
+def test_small_sequence_iterativelly():
+    model_e = FrequentistPM()
+    encoder = CabacEncoder()
+    encoder.start()
+    encoder.encode_bit(1, model=model_e)
+    encoder.encode_bit(1, model=model_e)
+    encoder.encode_bit(1, model=model_e)
+    encoder.encode_bit(1, model=model_e)
+    encoder.encode_bit(1, model=model_e)
+    encoded = encoder.end(fill_to_byte=True)
+
+    model_d = FrequentistPM()
+    decoder = CabacDecoder()
+    decoder.start(encoded)
+    decoder.decode_bit(model=model_d)
+    decoder.decode_bit(model=model_d)
+    decoder.decode_bit(model=model_d)
+    decoder.decode_bit(model=model_d)
+    decoder.decode_bit(model=model_d)
+    decoded = decoder.end()
+
+    assert bitarray("1" * 5) == decoded
