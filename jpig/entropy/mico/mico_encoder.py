@@ -1,6 +1,5 @@
 import numpy as np
 from bitarray import bitarray
-from typing import Sequence
 
 from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD

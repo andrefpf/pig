@@ -1,14 +1,9 @@
-from jpig.entropy import MuleEncoder, MuleDecoder, CabacEncoder, CabacDecoder, FrequentistPM, ExponentialSmoothingPM
 from jpig.media import RawImage
 from jpig.metrics import mse, psnr
-from jpig.codecs import WholeImageMule, BlockedMule
-from bitarray import bitarray
+from jpig.codecs import BlockedMule
 
-from scipy.fft import dctn, idctn
-import numpy as np
 
 import matplotlib.pyplot as plt
-from jpig.utils.block_utils import split_blocks_equal_size, split_blocks_in_half
 
 
 def compare_data(data1, data2):

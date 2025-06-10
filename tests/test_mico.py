@@ -1,6 +1,5 @@
 import numpy as np
 from jpig.entropy import MicoEncoder, MicoDecoder
-from jpig.utils.block_utils import split_shape_in_half
 
 
 def test_mico_bitplanes():
