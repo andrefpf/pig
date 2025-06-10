@@ -4,29 +4,23 @@ import numpy as np
 from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
-from jpig.entropy import MuleDecoder, MuleEncoder
+from jpig.entropy import MicoDecoder, MicoEncoder
 from jpig.utils.block_utils import split_blocks_equal_size
 
 
-class BlockedMule:
+class BlockedMico:
     def encode(
-        self,
-        data: np.ndarray,
-        lagrangian: float,
-        block_size: int = 8,
+        self, data: np.ndarray, lagrangian: float, block_size: int = 8
     ) -> bitarray:
-        max_bitplane = ceil(np.log2(np.max(data.astype(np.int64)) ** data.ndim))
-
         bitstream = bitarray()
         block_encoded_sizes = []
         for block in split_blocks_equal_size(data, block_size):
-            mule_encoder = MuleEncoder()
+            mico_encoder = MicoEncoder()
             transformed_block: np.ndarray = dctn(block, norm="ortho")
             transformed_block = transformed_block.round().astype(int)
-            block_bitstream = mule_encoder.encode(
+            block_bitstream = mico_encoder.encode(
                 transformed_block,
                 lagrangian,
-                upper_bitplane=max_bitplane,
             )
             bitstream += block_bitstream
             block_encoded_sizes.append(len(block_bitstream) // 8)
@@ -35,7 +29,6 @@ class BlockedMule:
         header.extend(f"{data.ndim:08b}")
         for size in data.shape:
             header.extend(f"{size:032b}")
-        header.extend(f"{max_bitplane:08b}")
 
         header.extend(f"{block_size:016b}")
         header.extend(f"{len(block_encoded_sizes):032b}")
@@ -52,7 +45,6 @@ class BlockedMule:
             size = self._consume_bytes(codestream, 32)
             shape.append(size)
 
-        max_bitplane = self._consume_bytes(codestream, 8)
         block_size = self._consume_bytes(codestream, 16)
         number_of_blocks = self._consume_bytes(codestream, 32)
 
@@ -70,14 +62,18 @@ class BlockedMule:
             last_pos = end
 
         decoded = np.zeros(shape, dtype=int)
-        for bitstream, block in zip(bitstreams, split_blocks_equal_size(decoded, block_size)):
-            mule_decoder = MuleDecoder()
-            transformed_block = mule_decoder.decode(
+        for bitstream, block in zip(
+            bitstreams,
+            split_blocks_equal_size(decoded, block_size),
+        ):
+            mico_decoder = MicoDecoder()
+            transformed_block = mico_decoder.decode(
                 bitstream,
                 block.shape,
-                upper_bitplane=max_bitplane,
             )
-            decoded_block: np.ndarray = idctn(transformed_block, norm="ortho")
+            decoded_block: np.ndarray = idctn(
+                transformed_block, norm="ortho"
+            )
             decoded_block = decoded_block.round().astype(int)
             block[:] = decoded_block
 

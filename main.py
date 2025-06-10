@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from jpig.codecs import BlockedMule
+from jpig.codecs import BlockedMule, BlockedMico
 from jpig.media import RawImage
 from jpig.metrics import mse, psnr
 
@@ -31,17 +31,29 @@ def compare_data(data1, data2):
 
 def main():
     img = RawImage().load_file("./datasets/images/cameraman.pgm")
+    block_size = 16
 
-    codec = BlockedMule()
-    bitstream = codec.encode(img.data, 0, 8)
+    codec = BlockedMico()
+    bitstream = codec.encode(img.data, 4, block_size)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
     print(f"Rate: {len(bitstream) / 8000:.2f} Kb")
     print(f"MSE: {mse(img.data, decoded)}")
     print(f"PSNR: {psnr(img.data, decoded, img.bitdepth)}")
+    # compare_data(img.data, decoded)
 
-    compare_data(img.data, decoded)
+    print("-" * 10)
+
+    codec = BlockedMule()
+    bitstream = codec.encode(img.data, 140, block_size)
+    decoded = codec.decode(bitstream)
+
+    print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
+    print(f"Rate: {len(bitstream) / 8000:.2f} Kb")
+    print(f"MSE: {mse(img.data, decoded)}")
+    print(f"PSNR: {psnr(img.data, decoded, img.bitdepth)}")
+    # compare_data(img.data, decoded)
 
 
 if __name__ == "__main__":
