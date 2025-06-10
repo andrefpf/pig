@@ -1,6 +1,7 @@
-import numpy as np
-from itertools import product, pairwise
+from itertools import pairwise, product
 from typing import Generator
+
+import numpy as np
 
 
 def split_shape_in_half(_slices: tuple[int] | tuple[slice]) -> Generator[slice]:

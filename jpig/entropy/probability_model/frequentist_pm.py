@@ -1,8 +1,7 @@
 from typing import Literal
 
-
-
 from ._probability_model import ProbabilityModel
+
 
 class FrequentistPM(ProbabilityModel):
     def probability(self, bit: bool | Literal[0, 1]) -> float:

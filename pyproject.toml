@@ -16,6 +16,8 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = [
-    "bla",
-]
+members = ["bla"]
+
+[tool.ruff.lint]
+select = ["I"]
+ignore = ["F401"]

@@ -25,7 +25,6 @@ class MuleDecoder:
         lower_bitplane: int = 0,
         upper_bitplane: int = 32,
     ) -> np.ndarray:
-
         self.lower_bitplane = lower_bitplane
         self.upper_bitplane = upper_bitplane
         block = np.zeros(shape)

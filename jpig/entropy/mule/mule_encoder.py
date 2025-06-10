@@ -1,6 +1,7 @@
+from typing import Sequence
+
 import numpy as np
 from bitarray import bitarray
-from typing import Sequence
 
 from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD
@@ -52,7 +53,9 @@ class MuleEncoder:
         self.apply_encoding(list(self.flags), block, self.upper_bitplane)
         return self.cabac.end(fill_to_byte=True)
 
-    def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
+    def apply_encoding(
+        self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int
+    ):
         if block.size == 1:
             value = block.flatten()[0]
             for i in range(self.lower_bitplane, upper_bitplane):
@@ -127,7 +130,9 @@ class MuleEncoder:
         distortion = np.sum(block.astype(np.int64) ** 2)
         return "Z", distortion
 
-    def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, float]:
+    def _estimate_lower_bp_flag(
+        self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int
+    ) -> tuple[str, float]:
         new_bitplane = self.find_max_bitplane(block)
         number_of_flags = upper_bitplane - new_bitplane
         flags, distortion = self._recursive_optimize_encoding_tree(
@@ -138,7 +143,9 @@ class MuleEncoder:
         new_flags = "L" * number_of_flags + flags
         return new_flags, distortion
 
-    def _estimate_split_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, float]:
+    def _estimate_split_flag(
+        self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int
+    ) -> tuple[str, float]:
         distortion = 0
         flags = "S"
         for sub_block in split_blocks_in_half(block):
@@ -185,12 +192,12 @@ class MuleEncoder:
     def _clear_models(self):
         for model in self.probability_models():
             model.clear()
-    
+
     def probability_models(self):
         return [
             self.flags_probability_model,
             self.signals_probability_model,
-            *self.bitplane_probability_models
+            *self.bitplane_probability_models,
         ]
 
     @staticmethod

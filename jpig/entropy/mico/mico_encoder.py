@@ -3,7 +3,7 @@ from bitarray import bitarray
 
 from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD
-from jpig.utils.block_utils import split_shape_in_half, bigger_possible_slice
+from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 
 class MicoEncoder:
@@ -47,7 +47,9 @@ class MicoEncoder:
         self.bitplane_sizes = self._calculate_bitplane_sizes()
         # self._encode_bitplane_sizes()
 
-        self.flags, _ = self._recursive_optimize_encoding_tree(bigger_possible_slice(block.shape))
+        self.flags, _ = self._recursive_optimize_encoding_tree(
+            bigger_possible_slice(block.shape)
+        )
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
@@ -78,7 +80,9 @@ class MicoEncoder:
             self.cabac.encode_bit(bit, model=self.bitplane_models[i])
         self.cabac.encode_bit(value < 0, model=self.signals_model)
 
-    def _recursive_optimize_encoding_tree(self, block_position: tuple[slice]) -> tuple[str, float]:
+    def _recursive_optimize_encoding_tree(
+        self, block_position: tuple[slice]
+    ) -> tuple[str, float]:
         sub_block = self.block[block_position]
 
         zero_rd = RD(

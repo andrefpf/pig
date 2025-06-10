@@ -1,9 +1,8 @@
+import matplotlib.pyplot as plt
+
+from jpig.codecs import BlockedMule
 from jpig.media import RawImage
 from jpig.metrics import mse, psnr
-from jpig.codecs import BlockedMule
-
-
-import matplotlib.pyplot as plt
 
 
 def compare_data(data1, data2):

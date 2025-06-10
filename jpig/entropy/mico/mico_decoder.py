@@ -2,7 +2,7 @@ import numpy as np
 from bitarray import bitarray
 
 from jpig.entropy import CabacDecoder, FrequentistPM
-from jpig.utils.block_utils import split_shape_in_half, bigger_possible_slice
+from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 
 class MicoDecoder:
@@ -28,7 +28,6 @@ class MicoDecoder:
         *,
         upper_bitplane: int = 32,
     ) -> np.ndarray:
-
         self.upper_bitplane = upper_bitplane
         self.block = np.zeros(shape, dtype=np.int32)
 

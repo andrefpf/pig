@@ -1,7 +1,12 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder, CabacDecoder, FrequentistPM, ExponentialSmoothingPM
+from jpig.entropy import (
+    CabacDecoder,
+    CabacEncoder,
+    ExponentialSmoothingPM,
+    FrequentistPM,
+)
 
 
 def test_specific_sequence():
@@ -112,7 +117,9 @@ def compare_probability_models():
     assert len(encoded_2) < len(encoded_1)
 
     decoded_1 = CabacDecoder().decode(encoded_1, len(original), model=FrequentistPM())
-    decoded_2 = CabacDecoder().decode(encoded_2, len(original), model=ExponentialSmoothingPM())
+    decoded_2 = CabacDecoder().decode(
+        encoded_2, len(original), model=ExponentialSmoothingPM()
+    )
 
     assert original == decoded_1
     assert original == decoded_2

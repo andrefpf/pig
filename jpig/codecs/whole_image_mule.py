@@ -1,7 +1,8 @@
 import numpy as np
-from scipy.fft import dctn, idctn
-from jpig.entropy import MuleEncoder, MuleDecoder
 from bitarray import bitarray
+from scipy.fft import dctn, idctn
+
+from jpig.entropy import MuleDecoder, MuleEncoder
 
 
 class WholeImageMule:

@@ -1,5 +1,6 @@
 import numpy as np
-from jpig.entropy import MicoEncoder, MicoDecoder
+
+from jpig.entropy import MicoDecoder, MicoEncoder
 
 
 def test_mico_bitplanes():

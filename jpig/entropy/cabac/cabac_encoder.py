@@ -92,15 +92,21 @@ class CabacEncoder:
 
     def _resolve_scaling(self):
         while True:
-            if (self.high & self._entropy_msb_mask) == (self.low & self._entropy_msb_mask):
-                msb = (self.high & self._entropy_msb_mask) >> (self.entropy_precision - 1)
+            if (self.high & self._entropy_msb_mask) == (
+                self.low & self._entropy_msb_mask
+            ):
+                msb = (self.high & self._entropy_msb_mask) >> (
+                    self.entropy_precision - 1
+                )
                 self.low -= self._half_range * msb + msb
                 self.high -= self._half_range * msb + msb
 
                 self.result.append(bool(msb))
                 self._flush_inverse_bits(bool(msb))
 
-            elif (self.high <= self._three_quarter_range) and (self.low > self._quarter_range):
+            elif (self.high <= self._three_quarter_range) and (
+                self.low > self._quarter_range
+            ):
                 self.low -= self._quarter_range + 1
                 self.high -= self._quarter_range + 1
                 self.e3_count += 1

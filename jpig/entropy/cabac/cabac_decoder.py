@@ -113,7 +113,9 @@ class CabacDecoder:
                 self.low -= self._half_range + 1
                 self.current -= self._half_range + 1
 
-            elif (self._quarter_range < self.low) and (self.high <= self._three_quarter_range):
+            elif (self._quarter_range < self.low) and (
+                self.high <= self._three_quarter_range
+            ):
                 self.high -= self._quarter_range + 1
                 self.low -= self._quarter_range + 1
                 self.current -= self._quarter_range + 1

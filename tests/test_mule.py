@@ -1,5 +1,6 @@
 import numpy as np
-from jpig.entropy import MuleEncoder, MuleDecoder
+
+from jpig.entropy import MuleDecoder, MuleEncoder
 
 
 def test_mule_easy():
@@ -19,7 +20,9 @@ def test_mule_easy():
     # i.e. without introducing losses
     max_bitplane = MuleEncoder.find_max_bitplane(original)
     encoded = encoder.encode(original, 0, lower_bitplane=0, upper_bitplane=max_bitplane)
-    decoded = decoder.decode(encoded, original.shape, lower_bitplane=0, upper_bitplane=max_bitplane)
+    decoded = decoder.decode(
+        encoded, original.shape, lower_bitplane=0, upper_bitplane=max_bitplane
+    )
 
     assert encoder.flags == "SSLLSZLLS"
     assert np.allclose(original, decoded)
@@ -31,7 +34,11 @@ def test_mule_random():
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
     max_bitplane = MuleEncoder.find_max_bitplane(original)
-    encoded = MuleEncoder().encode(original, 0, lower_bitplane=0, upper_bitplane=max_bitplane)
-    decoded = MuleDecoder().decode(encoded, original.shape, lower_bitplane=0, upper_bitplane=max_bitplane)
+    encoded = MuleEncoder().encode(
+        original, 0, lower_bitplane=0, upper_bitplane=max_bitplane
+    )
+    decoded = MuleDecoder().decode(
+        encoded, original.shape, lower_bitplane=0, upper_bitplane=max_bitplane
+    )
 
     assert np.allclose(original, decoded)
