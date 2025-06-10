@@ -3,7 +3,7 @@ from itertools import product, pairwise
 from typing import Generator
 
 
-def split_shape_in_half(shape: tuple[int]) -> list[slice]:
+def split_shape_in_half(shape: tuple[int]) -> Generator[slice]:
     slices_per_dimension = []
     for size in shape:
         half = size // 2
@@ -39,3 +39,7 @@ def split_blocks_equal_size(block: np.ndarray, block_size: int) -> list[np.ndarr
         split_blocks.append(split_block)
 
     return split_blocks
+
+
+def bigger_possible_slice(shape: tuple[int]) -> tuple[slice]:
+    return tuple(slice(0, size) for size in shape)
