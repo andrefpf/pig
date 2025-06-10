@@ -3,15 +3,21 @@ from itertools import product, pairwise
 from typing import Generator
 
 
-def split_shape_in_half(shape: tuple[int]) -> Generator[slice]:
+def split_shape_in_half(_slices: tuple[int] | tuple[slice]) -> Generator[slice]:
+    if len(_slices) == 0:
+        raise StopIteration()
+
+    if isinstance(_slices[0], int):
+        _slices = bigger_possible_slice(_slices)
+
     slices_per_dimension = []
-    for size in shape:
-        half = size // 2
+    for _slice in _slices:
+        half = _slice.start + (_slice.stop - _slice.start) // 2
 
         if half == 0:
-            slices = (slice(0, size),)
+            slices = (slice(_slice.start, _slice.stop),)
         else:
-            slices = (slice(0, half), slice(half, size))
+            slices = (slice(_slice.start, half), slice(half, _slice.stop))
 
         slices_per_dimension.append(slices)
 
