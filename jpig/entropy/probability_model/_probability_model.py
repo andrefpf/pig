@@ -46,11 +46,17 @@ class ProbabilityModel(ABC):
     def probability(self, bit: bool | Literal[0, 1]) -> float: ...
 
     @abstractmethod
-    def push(self): ...
+    def set_values(self, values): ...
 
     @abstractmethod
-    def apply(self): ...
+    def get_values(self) -> tuple: ...
+
+    def push(self):
+        values = self.get_values()
+        self._stack.append(values)
 
     def pop(self):
-        self.apply()
-        return self.pop()
+        current_values = self.get_values()
+        new_values = self._stack.pop()
+        self.set_values(new_values)
+        return current_values

@@ -16,11 +16,11 @@ class FrequentistPM(ProbabilityModel):
         else:
             return self.frequency(0) / self.total_bits()
 
-    def push(self):
-        self._stack.append((self._frequency_of_zeros, self._frequency_of_ones))
-
-    def apply(self):
-        self._frequency_of_zeros, self._frequency_of_ones = self._stack[-1]
+    def set_values(self, values):
+        self._frequency_of_zeros, self._frequency_of_ones = values
+    
+    def get_values(self):
+        return self._frequency_of_zeros, self._frequency_of_ones
 
     def __eq__(self, other) -> bool:
         return (
