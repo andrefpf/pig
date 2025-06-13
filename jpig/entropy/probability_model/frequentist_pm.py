@@ -19,8 +19,8 @@ class FrequentistPM(ProbabilityModel):
     def push(self):
         self._stack.append((self._frequency_of_zeros, self._frequency_of_ones))
 
-    def pop(self):
-        self._frequency_of_zeros, self._frequency_of_ones = self._stack.pop()
+    def apply(self):
+        self._frequency_of_zeros, self._frequency_of_ones = self._stack[-1]
 
     def __eq__(self, other) -> bool:
         return (

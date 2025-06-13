@@ -46,10 +46,10 @@ class ExponentialSmoothingPM(ProbabilityModel):
         )
         self._stack.append(data)
 
-    def pop(self):
+    def apply(self):
         (
             self._frequency_of_zeros,
             self._frequency_of_ones,
             self._probability_of_ones,
             self.smooth_factor,
-        ) = self._stack.pop()
+        ) = self._stack[-1]

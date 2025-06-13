@@ -49,4 +49,8 @@ class ProbabilityModel(ABC):
     def push(self): ...
 
     @abstractmethod
-    def pop(self): ...
+    def apply(self): ...
+
+    def pop(self):
+        self.apply()
+        return self.pop()
