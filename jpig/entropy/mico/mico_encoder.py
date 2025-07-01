@@ -82,7 +82,7 @@ class MicoEncoder:
 
         elif flag == "E":  # Empty
             self.cabac.encode_bit(0, model=self.split_flags_model)
-            self.cabac.encode_bit(1, model=self.block_flags_model)
+            self.cabac.encode_bit(0, model=self.block_flags_model)
 
         elif flag == "v":  # Value
             assert sub_block.size == 1
@@ -107,6 +107,10 @@ class MicoEncoder:
 
     def _recursive_optimize_encoding_tree(self, block_position: tuple[slice]) -> tuple[str, RD]:
         sub_block = self.block[block_position]
+
+        if sub_block.size == 0:
+            return "", RD()
+
         if sub_block.size == 1:
             return self._estimate_unit_block(block_position)
 
