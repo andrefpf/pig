@@ -18,7 +18,7 @@ class FrequentistPM(ProbabilityModel):
 
     def set_values(self, values):
         self._frequency_of_zeros, self._frequency_of_ones = values
-    
+
     def get_values(self):
         return self._frequency_of_zeros, self._frequency_of_ones
 

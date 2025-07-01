@@ -43,7 +43,9 @@ class MicoEncoder:
         self.lagrangian = lagrangian
 
         self.bitplane_sizes = self._calculate_bitplane_sizes()
-        self.flags, self.estimated_rd = self._recursive_optimize_encoding_tree(bigger_possible_slice(block.shape))
+        self.flags, self.estimated_rd = self._recursive_optimize_encoding_tree(
+            bigger_possible_slice(block.shape)
+        )
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
@@ -105,7 +107,9 @@ class MicoEncoder:
             self.cabac.encode_bit(bit, model=self.bitplane_models[i])
         self.cabac.encode_bit(value < 0, model=self.signals_model)
 
-    def _recursive_optimize_encoding_tree(self, block_position: tuple[slice]) -> tuple[str, RD]:
+    def _recursive_optimize_encoding_tree(
+        self, block_position: tuple[slice]
+    ) -> tuple[str, RD]:
         sub_block = self.block[block_position]
 
         if sub_block.size == 0:

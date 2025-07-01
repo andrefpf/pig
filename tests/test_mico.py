@@ -12,7 +12,7 @@ def test_mico_bitplanes():
             [0, 0, 1, -2],
             [0, 0, 3, -1],
         ]
-    )
+    )  # fmt: skip
     encoder = MicoEncoder()
     encoder.block = original
     assert encoder._calculate_bitplane_sizes() == [5, 4, 2, 2]
