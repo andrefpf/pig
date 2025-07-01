@@ -21,11 +21,13 @@ class MicoEncoder:
         self.bitplane_sizes = []
         self.lagrangian = 10_000
 
-        self.block_flags_model = FrequentistPM()
+        self.split_flags_model = FrequentistPM()
         self.unit_flags_model = FrequentistPM()
+        self.block_flags_model = FrequentistPM()
+
         self.signals_model = FrequentistPM()
-        self.bitplane_sizes_model = FrequentistPM()
         self.bitplane_models = [FrequentistPM() for _ in range(32)]
+        self.bitplane_sizes_model = FrequentistPM()
 
         self.bitstream = bitarray()
         self.cabac = CabacEncoder()
@@ -62,38 +64,40 @@ class MicoEncoder:
         flag = flags.pop(0)
         sub_block = self.block[block_position]
 
-        if flag == "Z":
-            self.cabac.encode_bit(0, model=self.block_flags_model)
-            self.cabac.encode_bit(0, model=self.block_flags_model)
+        if flag == "S":  # Split
+            self.cabac.encode_bit(1, model=self.split_flags_model)
 
-        elif flag == "A":
-            self.cabac.encode_bit(0, model=self.block_flags_model)
+            for sub_pos in split_shape_in_half(block_position):
+                self.apply_encoding(flags, sub_pos)
+
+        elif flag == "F":  # Full
+            self.cabac.encode_bit(0, model=self.split_flags_model)
             self.cabac.encode_bit(1, model=self.block_flags_model)
 
             dims = np.mgrid[block_position]
-            levels = np.max(dims, axis=0)
+            levels: np.ndarray = np.max(dims, axis=0)
             for level, value in zip(levels.flatten(), sub_block.flatten()):
                 upper_bitplane = self.bitplane_sizes[level]
                 self.encode_value(value, upper_bitplane)
 
-        elif flag == "S":
+        elif flag == "E":  # Empty
+            self.cabac.encode_bit(0, model=self.split_flags_model)
             self.cabac.encode_bit(1, model=self.block_flags_model)
-            for sub_pos in split_shape_in_half(block_position):
-                self.apply_encoding(flags, sub_pos)
 
-        elif flag == "z":
+        elif flag == "v":  # Value
+            assert sub_block.size == 1
+            self.cabac.encode_bit(1, model=self.unit_flags_model)
+
+            value = sub_block.flatten()[0]
+            upper_bitplane = self._get_bitplane(block_position)
+            self.encode_value(value, upper_bitplane)
+
+        elif flag == "z":  # Zero
             assert sub_block.size == 1
             self.cabac.encode_bit(0, model=self.unit_flags_model)
 
-        elif flag == "v":
-            assert sub_block.size == 1
-            self.cabac.encode_bit(1, model=self.unit_flags_model)
-            value = sub_block.flatten()[0]
-            self._get_bitplane(block_position)
-            self.encode_value(value)
-
         else:
-            raise ValueError("Invalid encoding")
+            raise ValueError(f'Invalid encoding flag "{flag}"')
 
     def encode_value(self, value: int, upper_bitplane: int = 32):
         for i in range(0, upper_bitplane):
@@ -112,7 +116,13 @@ class MicoEncoder:
         best_models = []
         original_models = self._get_models()
 
-        for func in [self._estimate_Z_flag, self._estimate_A_flag, self._estimate_S_flag]:
+        functions_to_estimate = [
+            self._estimate_E_flag,
+            self._estimate_F_flag,
+            self._estimate_S_flag,
+        ]
+
+        for func in functions_to_estimate:
             flags, rd = func(block_position)
             cost = rd.cost(self.lagrangian / sub_block.size)
             models = self._get_models()
@@ -127,16 +137,16 @@ class MicoEncoder:
         self._set_models(best_models)
         return best_flags, best_rd
 
-    def _estimate_Z_flag(self, block_position: tuple[slice]) -> tuple[str, RD]:
+    def _estimate_E_flag(self, block_position: tuple[slice]) -> tuple[str, RD]:
         sub_block = self.block[block_position]
         self.block_flags_model.add_bit(0)
         self.block_flags_model.add_bit(1)
-        return "Z", RD(
+        return "E", RD(
             self._estimate_current_rate(),
             energy(sub_block),
         )
 
-    def _estimate_A_flag(self, block_position: tuple[slice]) -> tuple[str, RD]:
+    def _estimate_F_flag(self, block_position: tuple[slice]) -> tuple[str, RD]:
         self.block_flags_model.add_bit(0)
         self.block_flags_model.add_bit(0)
 
@@ -150,7 +160,7 @@ class MicoEncoder:
                 self.bitplane_models[i].add_bit(bit)
             self.signals_model.add_bit(value < 0)
 
-        return "A", RD(
+        return "F", RD(
             self._estimate_current_rate(),
             0,
         )
@@ -204,7 +214,7 @@ class MicoEncoder:
 
         return bitplane_sizes
 
-    def _get_bitplane(self, block_position: tuple[slice]):
+    def _get_bitplane(self, block_position: tuple[slice]) -> int:
         level = max(s.start for s in block_position)
         return self.bitplane_sizes[level]
 
