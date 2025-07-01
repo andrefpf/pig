@@ -32,6 +32,8 @@ def test_mule_easy():
         upper_bitplane=max_bitplane,
     )
 
+    print(len(encoded), encoder.estimated_rd, encoder.flags)
+
     assert encoder.flags == "SSLLLSZLLLS"
     assert np.allclose(original, decoded)
 

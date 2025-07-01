@@ -1,5 +1,5 @@
 from .binary_metrics import binary_entropy
-from .image_metrics import mse, psnr
+from .image_metrics import energy, mse, psnr
 from .rate_distortion import RD
 
 __all__ = [
@@ -7,4 +7,5 @@ __all__ = [
     "binary_entropy",
     "mse",
     "psnr",
+    "energy",
 ]
