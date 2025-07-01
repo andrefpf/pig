@@ -14,10 +14,13 @@ class MicoDecoder:
         self.upper_bitplane = 32
         self.bitplane_sizes = []
 
-        self.flags_model = FrequentistPM()
+        self.split_flags_model = FrequentistPM()
+        self.unit_flags_model = FrequentistPM()
+        self.block_flags_model = FrequentistPM()
+
         self.signals_model = FrequentistPM()
-        self.bitplane_sizes_model = FrequentistPM()
         self.bitplane_models = [FrequentistPM() for _ in range(32)]
+        self.bitplane_sizes_model = FrequentistPM()
 
         self.bitstream = bitarray()
         self.cabac = CabacDecoder()
@@ -39,29 +42,33 @@ class MicoDecoder:
         return self.block
 
     def apply_decoding(self, block_position: tuple[slice]):
-        flag = self._decode_flag()
-
-        if flag == "Z":
-            return
-
         sub_block = self.block[block_position]
-        if sub_block.size > 1:
+        flag = self._decode_flag(sub_block.size == 1)
+
+        if flag == "S":  # Split
             for sub_pos in split_shape_in_half(block_position):
                 self.apply_decoding(sub_pos)
-            return
 
-        bitplane = self._get_bitplane(block_position)
-        value = 0
-        for i in range(0, bitplane):
-            bit = self.cabac.decode_bit(model=self.bitplane_models[i])
-            if bit:
-                value |= 1 << i
+        elif flag == "F":  # Full
+            dims = np.mgrid[block_position]
+            levels: np.ndarray = np.max(dims, axis=0)
+            for i, level in np.ndenumerate(levels):
+                upper_bitplane = self.bitplane_sizes[level]
+                sub_block[i] = self.decode_value(upper_bitplane)
 
-        signal = self.cabac.decode_bit(model=self.signals_model)
-        if signal:
-            value = -value
+        elif flag == "E":  # Empty
+            assert sub_block.size != 1
 
-        self.block[block_position] = value
+        elif flag == "v":  # Value
+            assert sub_block.size == 1
+            bitplane = self._get_bitplane(block_position)
+            self.block[block_position] = self.decode_value(bitplane)
+
+        elif flag == "z":  # Zero
+            assert sub_block.size == 1
+
+        else:
+            raise ValueError(f'Invalid encoding flag "{flag}"')
 
     def decode_bitplane_sizes(self):
         self.bitplane_sizes = []
@@ -72,12 +79,37 @@ class MicoDecoder:
             self.bitplane_sizes.append(counter)
         self.bitplane_sizes.reverse()
 
-    def _decode_flag(self):
-        flag = self.cabac.decode_bit(model=self.flags_model)
-        if flag:
-            return "C"
+    def decode_value(self, upper_bitplane: int = 32) -> int:
+        value = 0
+        for i in range(0, upper_bitplane):
+            bit = self.cabac.decode_bit(model=self.bitplane_models[i])
+            if bit:
+                value |= 1 << i
+
+        signal = self.cabac.decode_bit(model=self.signals_model)
+        if signal:
+            value = -value
+
+        return value
+
+    def _decode_flag(self, unitary: bool):
+        if unitary:
+            unit_flag = self.cabac.decode_bit(model=self.unit_flags_model)
+            if unit_flag:
+                return "v"
+            else:
+                return "z"
+
         else:
-            return "Z"
+            split_flag = self.cabac.decode_bit(model=self.split_flags_model)
+            if split_flag:
+                return "S"
+            else:
+                block_flag = self.cabac.decode_bit(model=self.block_flags_model)
+                if block_flag:
+                    return "F"
+                else:
+                    return "E"
 
     def _get_bitplane(self, block_position: tuple[slice]):
         level = max(s.start for s in block_position)
