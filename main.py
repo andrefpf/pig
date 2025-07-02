@@ -31,10 +31,10 @@ def compare_data(data1, data2):
 
 def main():
     img = RawImage().load_file("./datasets/images/cameraman.pgm")
-    block_size = 16
+    block_size = 8
 
     codec = BlockedMico()
-    bitstream = codec.encode(img.data, 4, block_size)
+    bitstream = codec.encode(img.data, 32, block_size)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
@@ -46,7 +46,7 @@ def main():
     print("-" * 10)
 
     codec = BlockedMule()
-    bitstream = codec.encode(img.data, 140, block_size)
+    bitstream = codec.encode(img.data, 40, block_size)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
