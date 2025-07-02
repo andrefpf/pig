@@ -132,7 +132,7 @@ class MicoEncoder:
 
         for func in functions_to_estimate:
             flags, rd = func(block_position)
-            cost = rd.cost(self.lagrangian / sub_block.size)
+            cost = rd.cost(self.lagrangian)
             models = self._get_models()
             self._set_models(original_models)
 

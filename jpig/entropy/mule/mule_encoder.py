@@ -94,7 +94,7 @@ class MuleEncoder:
             self._update_models_with_value(block, lower_bitplane, upper_bitplane)
             return "", 0
 
-        lagrangian = self.lagrangian / block.size
+        lagrangian = self.lagrangian
 
         zero_flags, zero_distortion = self._estimate_zero_flag(block)
         zero_rd = RD(self._estimate_current_rate(), zero_distortion)
