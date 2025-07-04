@@ -18,7 +18,7 @@ def test_mico_bitplanes():
     assert encoder._calculate_bitplane_sizes() == [5, 4, 2, 2]
 
 
-def test_mule_easy():
+def test_mico_easy():
     original = np.array(
         [
             [18, 8, 0,  2],
@@ -35,7 +35,7 @@ def test_mule_easy():
     # i.e. without introducing losses
     encoded = encoder.encode(
         original,
-        lagrangian=1,
+        lagrangian=1e-6,
     )
     decoded = decoder.decode(
         encoded,
@@ -48,7 +48,7 @@ def test_mule_easy():
 
 
 # @pytest.mark.skip
-def test_mule_random():
+def test_mico_random():
     original = np.random.randint(0, 255, (9, 10, 8, 5, 2))
 
     encoder = MicoEncoder()
