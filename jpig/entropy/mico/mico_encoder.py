@@ -6,9 +6,9 @@ from jpig.metrics import RD, energy
 from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 
-class MicoEncoderRD:
+class MicoEncoder:
     """
-    Multidimensional Image COdec Rate Distortion- Encoder
+    Multidimensional Image COdec - Encoder
     """
 
     def __init__(self):

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from jpig.entropy import MicoDecoderRD, MicoEncoderRD
+from jpig.entropy import MicoDecoder, MicoEncoder
 
 
 def test_mico_bitplanes():
@@ -13,12 +13,12 @@ def test_mico_bitplanes():
             [0, 0, 3, -1],
         ]
     )  # fmt: skip
-    encoder = MicoEncoderRD()
+    encoder = MicoEncoder()
     encoder.block = original
     assert encoder._calculate_bitplane_sizes() == [5, 4, 2, 2]
 
 
-def test_mico_rd_easy():
+def test_mule_easy():
     original = np.array(
         [
             [18, 8, 0,  2],
@@ -28,14 +28,14 @@ def test_mico_rd_easy():
         ]
     )  # fmt: skip
 
-    encoder = MicoEncoderRD()
-    decoder = MicoDecoderRD()
+    encoder = MicoEncoder()
+    decoder = MicoDecoder()
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
     encoded = encoder.encode(
         original,
-        lagrangian=0.0001,
+        lagrangian=1,
     )
     decoded = decoder.decode(
         encoded,
@@ -48,11 +48,11 @@ def test_mico_rd_easy():
 
 
 # @pytest.mark.skip
-def test_mico_rd_random():
+def test_mule_random():
     original = np.random.randint(0, 255, (9, 10, 8, 5, 2))
 
-    encoder = MicoEncoderRD()
-    decoder = MicoDecoderRD()
+    encoder = MicoEncoder()
+    decoder = MicoDecoder()
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
