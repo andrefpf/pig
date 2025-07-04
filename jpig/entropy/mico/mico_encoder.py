@@ -117,6 +117,12 @@ class MicoEncoder:
 
         if sub_block.size == 1:
             return self._estimate_unit_block(block_position)
+    
+        if np.sum(sub_block) == 0:
+            return self._estimate_E_flag(block_position)
+    
+        if np.all(sub_block != 0):
+            return self._estimate_F_flag(block_position)
 
         best_flags = ""
         best_rd = RD()
