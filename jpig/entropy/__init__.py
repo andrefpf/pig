@@ -5,8 +5,8 @@ from .cabac.cabac_encoder import CabacEncoder
 from .cabac.cabac_decoder import CabacDecoder
 from .mule.mule_encoder import MuleEncoder
 from .mule.mule_decoder import MuleDecoder
-from .mico.mico_encoder import MicoEncoder
-from .mico.mico_decoder import MicoDecoder
+from .mico.mico_encoder_rd import MicoEncoderRD
+from .mico.mico_decoder_rd import MicoDecoderRD
 
 
 __all__ = [
@@ -16,6 +16,6 @@ __all__ = [
     "MuleDecoder",
     "FrequentistPM",
     "ExponentialSmoothingPM",
-    "MicoEncoder",
-    "MicoDecoder",
+    "MicoEncoderRD",
+    "MicoDecoderRD",
 ]

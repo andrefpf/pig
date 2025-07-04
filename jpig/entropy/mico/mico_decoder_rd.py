@@ -5,7 +5,7 @@ from jpig.entropy import CabacDecoder, FrequentistPM
 from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 
-class MicoDecoder:
+class MicoDecoderRD:
     """
     Multidimensional Image COdec - Decoder
     """
