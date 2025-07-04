@@ -9,15 +9,17 @@ from jpig.utils.block_utils import split_blocks_equal_size
 
 
 class BlockedMico:
-    def encode(
-        self, data: np.ndarray, lagrangian: float, block_size: int = 8
-    ) -> bitarray:
+    def encode(self, data: np.ndarray, lagrangian: float, block_size: int = 8) -> bitarray:
         bitstream = bitarray()
         block_encoded_sizes = []
+
+        quantization_matrix = self._get_quantization_matrix(block_size, data.ndim, quality=9)
+
         for block in split_blocks_equal_size(data, block_size):
-            mico_encoder = MicoEncoder()
-            transformed_block: np.ndarray = dctn(block, norm="ortho")
+            transformed_block: np.ndarray = dctn(block, norm="ortho") / quantization_matrix
             transformed_block = transformed_block.round().astype(int)
+
+            mico_encoder = MicoEncoder()
             block_bitstream = mico_encoder.encode(
                 transformed_block,
                 lagrangian,
@@ -61,6 +63,8 @@ class BlockedMico:
             bitstreams.append(codestream[start:end])
             last_pos = end
 
+        quantization_matrix = self._get_quantization_matrix(block_size, ndim, quality=9)
+
         decoded = np.zeros(shape, dtype=int)
         for bitstream, block in zip(
             bitstreams,
@@ -70,7 +74,8 @@ class BlockedMico:
             transformed_block = mico_decoder.decode(
                 bitstream,
                 block.shape,
-            )
+            ) * quantization_matrix
+
             decoded_block: np.ndarray = idctn(transformed_block, norm="ortho")
             decoded_block = decoded_block.round().astype(int)
             block[:] = decoded_block
@@ -81,3 +86,19 @@ class BlockedMico:
         value = int.from_bytes(codestream[:number_of_bytes].tobytes())
         codestream[:] = codestream[number_of_bytes:]
         return value
+
+    def _get_quantization_matrix(
+        self,
+        block_size: int,
+        dimensions: int,
+        quality: int = 1,
+        p: float = 0.8,
+    ) -> np.ndarray:
+        shape = dimensions * (block_size,)
+        aranges = dimensions * (np.arange(1, block_size + 1),)
+        quantization_matrix = np.ones(shape)
+        for grid in np.meshgrid(*aranges):
+            quantization_matrix += grid**p
+        quantization_matrix /= dimensions + 1
+        quantization_matrix *= quality
+        return quantization_matrix

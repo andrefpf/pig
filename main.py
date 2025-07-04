@@ -34,7 +34,7 @@ def main():
     block_size = 8
 
     codec = BlockedMico()
-    bitstream = codec.encode(img.data, 32, block_size)
+    bitstream = codec.encode(img.data, 1e-8, block_size)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
