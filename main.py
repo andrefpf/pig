@@ -30,30 +30,30 @@ def compare_data(data1, data2):
 
 
 def main():
-    img = RawImage().load_file("./datasets/images/cameraman.pgm")
+    img = RawImage.from_file("./datasets/images/cameraman.pgm")
     block_size = 8
 
     codec = BlockedMico()
-    bitstream = codec.encode(img.data, 1e-8, block_size)
+    bitstream = codec.encode(img, 1e-8, block_size)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
     print(f"Rate: {len(bitstream) / 8000:.2f} Kb")
-    print(f"MSE: {mse(img.data, decoded)}")
-    print(f"PSNR: {psnr(img.data, decoded, img.bitdepth)}")
-    # compare_data(img.data, decoded)
+    print(f"MSE: {mse(img, decoded)}")
+    print(f"PSNR: {psnr(img, decoded, img.bitdepth)}")
+    # compare_data(img, decoded)
 
     print("-" * 10)
 
     codec = BlockedMule()
-    bitstream = codec.encode(img.data, 40, block_size)
+    bitstream = codec.encode(img, 40, block_size)
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")
     print(f"Rate: {len(bitstream) / 8000:.2f} Kb")
-    print(f"MSE: {mse(img.data, decoded)}")
-    print(f"PSNR: {psnr(img.data, decoded, img.bitdepth)}")
-    # compare_data(img.data, decoded)
+    print(f"MSE: {mse(img, decoded)}")
+    print(f"PSNR: {psnr(img, decoded, img.bitdepth)}")
+    # compare_data(img, decoded)
 
 
 if __name__ == "__main__":
