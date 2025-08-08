@@ -1,0 +1,190 @@
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+
+from jpig.codecs import BlockedMico, BlockedMicoQuantized, BlockedMule
+from jpig.media import RawImage
+from jpig.metrics.image_metrics import psnr
+from jpig.metrics.rate_distortion import RD
+from jpig.metrics.rd_curve import find_rd_curve, plot_rd_curves
+
+
+def test_jpeg(path: str | Path, quality: int) -> RD:
+    path = Path(path).expanduser()
+    output_path = Path(".tmp/tmp_jpeg.jpeg")
+
+    original = Image.open(path)
+    original.save(output_path, format="jpeg", quality=quality)
+    decoded = np.array(Image.open(output_path))
+
+    num_pixels = original.width * original.height
+    return RD(
+        rate=output_path.stat().st_size / num_pixels,
+        distortion=psnr(original, decoded, n_bits=8),
+    )
+
+def test_jpeg_2000(path: str | Path, target_psnr: int) -> RD:
+    path = Path(path).expanduser()
+    output_path = Path(".tmp/tmp_jpeg_2000.jp2")
+
+    original = Image.open(path)
+    original.save(output_path, format="jpeg2000", quality_mode="dB", quality_layers=[target_psnr])
+    decoded = np.array(Image.open(output_path))
+
+    num_pixels = original.width * original.height
+    return RD(
+        rate=output_path.stat().st_size / num_pixels,
+        distortion=psnr(original, decoded, n_bits=8),
+    )
+
+
+def test_webp(path: str, quality: int) -> RD:
+    path = Path(path).expanduser()
+    output_path = Path(".tmp/tmp_webp.webp")
+
+    original = Image.open(path)
+    original.save(output_path, format="webp", quality=quality)
+    decoded = np.array(Image.open(output_path).convert("L"))
+    num_pixels = original.width * original.height
+
+    return RD(
+        rate=output_path.stat().st_size / num_pixels,
+        distortion=psnr(original, decoded, n_bits=8),
+    )
+
+
+def test_jpeg_pleno(path: str) -> RD:
+    return
+
+
+def test_mule(path: str, lagrangian: float) -> RD:
+    img = RawImage.from_file(path)
+    codec_0 = BlockedMule()
+    bitstream = codec_0.encode(
+        img,
+        lagrangian=lagrangian,
+        block_size=16,
+    )
+
+    codec_1 = BlockedMule()
+    decoded = codec_1.decode(bitstream)
+
+    return RD(
+        rate=len(bitstream) / img.number_of_samples(),
+        distortion=psnr(img, decoded, img.bitdepth),
+    )
+
+def test_mico(path: str, lagrangian: float) -> RD:
+    img = RawImage.from_file(path)
+    codec_0 = BlockedMico()
+    bitstream = codec_0.encode(
+        img,
+        lagrangian=lagrangian,
+        block_size=16,
+    )
+
+    codec_1 = BlockedMico()
+    decoded = codec_1.decode(bitstream)
+
+    return RD(
+        rate=len(bitstream) / img.number_of_samples(),
+        distortion=psnr(img, decoded, img.bitdepth),
+    )
+
+def test_mico_quantized(path: str, quality: int) -> RD:
+    img = RawImage.from_file(path)
+    codec_0 = BlockedMicoQuantized()
+    bitstream = codec_0.encode(
+        img,
+        lagrangian=1e-8,
+        quality=quality,
+        block_size=16,
+    )
+
+    codec_1 = BlockedMicoQuantized()
+    decoded = codec_1.decode(bitstream)
+
+    return RD(
+        rate=len(bitstream) / img.number_of_samples(),
+        distortion=psnr(img, decoded, img.bitdepth),
+    )
+
+
+if __name__ == "__main__":
+    path = Path("datasets/images/cameraman.pgm").expanduser()
+    parameters = [
+        (10,),
+        # (20,),
+        # (30,),
+        # (40,),
+        (50,),
+        # (60,),
+        # (70,),
+        (80,),
+        (90,),
+        # (100,),
+    ]
+
+    jpeg_2k_parameters = [
+        (30,),
+        (35,),
+        (37,),
+        (40,),
+    ]
+
+    lagrangians_mule = [
+        (10,),
+        (100,),
+        (500,),
+        (1000,),
+    ]
+
+    lagrangians_mico = [
+        (10,),
+        (100,),
+        (500,),
+        (1000,),
+    ]
+
+    # jpeg_curve = find_rd_curve(
+    #     lambda quality: test_jpeg(path, quality),
+    #     args_sequence=parameters,
+    # )
+
+    # jpeg_2000_curve = find_rd_curve(
+    #     lambda quality: test_jpeg_2000(path, quality),
+    #     args_sequence=jpeg_2k_parameters,
+    # )
+    # print(jpeg_2000_curve)
+
+    # webp_curve = find_rd_curve(
+    #     lambda quality: test_webp(path, quality),
+    #     args_sequence=parameters,
+    # )
+
+    # mule_curve = find_rd_curve(
+    #     lambda quality: test_mule(path, quality),
+    #     args_sequence=lagrangians_mule,
+    # )
+
+    # mico_curve = find_rd_curve(
+    #     lambda quality: test_mico(path, quality),
+    #     args_sequence=lagrangians_mico,
+    # )
+
+    from time import perf_counter
+
+    mico_quantized_curve = find_rd_curve(
+        lambda quality: test_mico_quantized(path, quality),
+        args_sequence=parameters,
+    )
+
+    # plot_rd_curves(
+    #     jpeg_curve=jpeg_curve,
+    #     jpeg_2000_curve=jpeg_2000_curve,
+    #     webp_curve=webp_curve,
+    #     mule_curve=mule_curve,
+    #     mico_curve=mico_curve,
+    #     mico_quantized_curve=mico_quantized_curve,
+    # )

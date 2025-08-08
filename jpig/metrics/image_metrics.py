@@ -7,7 +7,10 @@ def mse(baseline: np.ndarray, distorted: np.ndarray) -> float:
 
 def psnr(baseline: np.ndarray, distorted: np.ndarray, n_bits: int) -> float:
     max_value = (1 << n_bits) - 1
-    return 10 * np.log10(max_value * max_value / mse(baseline, distorted))
+    _mse = mse(baseline, distorted)
+    if _mse == 0:
+        return np.inf
+    return 10 * np.log10(max_value * max_value / _mse)
 
 
 def energy(block: np.ndarray) -> float:

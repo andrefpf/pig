@@ -1,8 +1,9 @@
 from typing import Callable, Sequence
-
+from itertools import zip_longest
 import matplotlib.pyplot as plt
 
 from jpig.metrics import RD
+from tqdm import tqdm
 
 
 def find_rd_curve(
@@ -11,14 +12,20 @@ def find_rd_curve(
     kwargs_sequence: Sequence[dict] | None = None,
 ) -> list[RD]:
     if args_sequence is None:
-        args_sequence = tuple()
+        args_sequence = list()
 
     if kwargs_sequence is None:
-        kwargs_sequence = dict()
+        kwargs_sequence = list()
 
     rd_curve: list[RD] = list()
 
-    for args, kwargs in zip(args_sequence, kwargs_sequence):
+    for args, kwargs in tqdm(zip_longest(args_sequence, kwargs_sequence, fillvalue=None)):
+        if args is None:
+            args = tuple()
+
+        if kwargs is None:
+            kwargs = dict()
+
         rd_curve.append(function(*args, **kwargs))
 
     rd_curve.sort(key=lambda rd: rd.rate)
@@ -26,12 +33,16 @@ def find_rd_curve(
     return rd_curve
 
 
-def plot_rd_curves(*all_rd_curves: Sequence[RD]):
-    for curve in all_rd_curves:
+def plot_rd_curves(**all_rd_curves: Sequence[RD]):
+    for name, curve in all_rd_curves.items():
         r = [c.rate for c in curve]
         d = [c.distortion for c in curve]
-        plt.plot(r, d)
+        plt.plot(r, d, marker="o", label=name)
 
+    plt.xlabel("BPP")
+    plt.ylabel("PSNR")
+
+    plt.legend()
     plt.show()
 
 

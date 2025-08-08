@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from jpig.codecs import BlockedMico, BlockedMule
+from jpig.codecs import BlockedMicoQuantized, BlockedMule
 from jpig.media import RawImage
 from jpig.metrics import mse, psnr
 
@@ -32,9 +32,16 @@ def compare_data(data1, data2):
 def main():
     img = RawImage.from_file("./datasets/images/cameraman.pgm")
     block_size = 8
+    
+    codec = BlockedMicoQuantized()
+    
+    from time import perf_counter
+    start = perf_counter()
+    bitstream = codec.encode(img, 1e-8, 90, block_size)
+    end = perf_counter()
+    print("Time: ", end - start)
 
-    codec = BlockedMico()
-    bitstream = codec.encode(img, 1e-8, block_size)
+
     decoded = codec.decode(bitstream)
 
     print(f"Original Rate: {img.number_of_samples() * img.bitdepth / 8000:.2f} Kb")

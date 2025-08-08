@@ -8,13 +8,15 @@ from jpig.entropy import MicoDecoder, MicoEncoder
 from jpig.utils.block_utils import split_blocks_equal_size
 
 
-class BlockedMico:
-    def encode(self, data: np.ndarray, lagrangian: float, block_size: int = 8) -> bitarray:
+class BlockedMicoQuantized:
+    def encode(self, data: np.ndarray, lagrangian: float, quality: int, block_size: int = 8) -> bitarray:
         bitstream = bitarray()
         block_encoded_sizes = []
 
+        quantization_matrix = self._get_quantization_matrix(block_size, data.ndim, quality=quality)
+
         for block in split_blocks_equal_size(data, block_size):
-            transformed_block: np.ndarray = dctn(block, norm="ortho")
+            transformed_block: np.ndarray = dctn(block, norm="ortho") / quantization_matrix
             transformed_block = transformed_block.round().astype(int)
 
             mico_encoder = MicoEncoder()
@@ -29,6 +31,7 @@ class BlockedMico:
         header.extend(f"{data.ndim:08b}")
         for size in data.shape:
             header.extend(f"{size:032b}")
+        header.extend(f"{quality:08b}")
 
         header.extend(f"{block_size:016b}")
         header.extend(f"{len(block_encoded_sizes):032b}")
@@ -44,6 +47,8 @@ class BlockedMico:
         for _ in range(ndim):
             size = self._consume_bytes(codestream, 32)
             shape.append(size)
+
+        quality = self._consume_bytes(codestream, 8)
 
         block_size = self._consume_bytes(codestream, 16)
         number_of_blocks = self._consume_bytes(codestream, 32)
@@ -61,6 +66,8 @@ class BlockedMico:
             bitstreams.append(codestream[start:end])
             last_pos = end
 
+        quantization_matrix = self._get_quantization_matrix(block_size, ndim, quality=quality)
+
         decoded = np.zeros(shape, dtype=int)
         for bitstream, block in zip(
             bitstreams,
@@ -72,6 +79,7 @@ class BlockedMico:
                     bitstream,
                     block.shape,
                 )
+                * quantization_matrix
             )
 
             decoded_block: np.ndarray = idctn(transformed_block, norm="ortho")
@@ -84,3 +92,19 @@ class BlockedMico:
         value = int.from_bytes(codestream[:number_of_bytes].tobytes())
         codestream[:] = codestream[number_of_bytes:]
         return value
+
+    def _get_quantization_matrix(
+        self,
+        block_size: int,
+        dimensions: int,
+        quality: int = 100,
+        p: float = 0.8,
+    ) -> np.ndarray:
+        shape = dimensions * (block_size,)
+        aranges = dimensions * (np.arange(1, block_size + 1),)
+        quantization_matrix = np.ones(shape)
+        for grid in np.meshgrid(*aranges):
+            quantization_matrix += grid**p
+        quantization_matrix /= dimensions + 1
+        quantization_matrix *= quality / 10
+        return quantization_matrix
