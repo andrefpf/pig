@@ -2,6 +2,8 @@ import numpy as np
 
 
 def mse(baseline: np.ndarray, distorted: np.ndarray) -> float:
+    baseline = np.array(baseline, dtype=np.float64)
+    distorted = np.array(distorted, dtype=np.float64)
     return np.mean((baseline - distorted) ** 2)
 
 
