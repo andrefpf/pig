@@ -1,0 +1,32 @@
+{
+  "part": "2",
+  "type": "0",
+  "enum-cs": "YCbCr_1",
+  "border_policy": "1",
+  "number-of-colour-channels": 1,
+  "number_of_rows": 1,
+  "number_of_columns": 1,
+  "use_xml_box": false,
+  "transform_size": {
+    "maximum": {
+      "intra-view": {
+        "vertical": 32,
+        "horizontal": 32
+      },
+      "inter-view": {
+        "vertical": 1,
+        "horizontal": 1
+      }
+    },
+    "minimum": {
+      "intra-view": {
+        "vertical": 4,
+        "horizontal": 4
+      },
+      "inter-view": {
+        "vertical": 1,
+        "horizontal": 1
+      }
+    }
+  }  
+}
