@@ -19,7 +19,13 @@ def find_rd_curve(
 
     rd_curve: list[RD] = list()
 
-    for args, kwargs in tqdm(zip_longest(args_sequence, kwargs_sequence, fillvalue=None)):
+    for args, kwargs in tqdm(
+        zip_longest(args_sequence, kwargs_sequence, fillvalue=None),
+        total=max(
+            len(args_sequence),
+            len(kwargs_sequence),
+        ),
+    ):
         if args is None:
             args = tuple()
 
