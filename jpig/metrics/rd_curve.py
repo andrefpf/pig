@@ -1,9 +1,10 @@
-from typing import Callable, Sequence
 from itertools import zip_longest
+from typing import Callable, Sequence
+
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from jpig.metrics import RD
-from tqdm import tqdm
 
 
 def find_rd_curve(
