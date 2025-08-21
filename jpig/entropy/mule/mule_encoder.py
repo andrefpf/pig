@@ -121,8 +121,7 @@ class MuleEncoder:
         rd = RD()
         rd.distortion = np.sum(block.astype(np.int64) ** 2)
         for bit in _Z:
-            rd.rate += self.flags_probability_model.estimate_bit(bit)
-            self.flags_probability_model.add_bit(bit)
+            rd.rate += self.flags_probability_model.add_and_estimate_bit(bit)
         return "Z", rd
 
     def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, RD]:
@@ -137,8 +136,7 @@ class MuleEncoder:
 
         for _ in range(number_of_flags):
             for bit in _L:
-                rd.rate += self.flags_probability_model.estimate_bit(bit)
-                self.flags_probability_model.add_bit(bit)
+                rd.rate += self.flags_probability_model.add_and_estimate_bit(bit)
 
         current_flags, current_rd = self._recursive_optimize_encoding_tree(
             block,
@@ -161,8 +159,7 @@ class MuleEncoder:
         flags = "S"
 
         for bit in _S:
-            rd.rate += self.flags_probability_model.estimate_bit(bit)
-            self.flags_probability_model.add_bit(bit)
+            rd.rate += self.flags_probability_model.add_and_estimate_bit(bit)
 
         for sub_block in split_blocks_in_half(block):
             current_flags, current_rd = self._recursive_optimize_encoding_tree(
@@ -187,12 +184,8 @@ class MuleEncoder:
         for i in range(lower_bitplane, upper_bitplane):
             bit = (1 << i) & np.abs(value) != 0
             model = self.bitplane_probability_models[i]
-            rd.rate += model.estimate_bit(bit)
-            model.add_bit(bit)
-
-        rd.rate += self.signals_probability_model.estimate_bit(value < 0)
-        self.signals_probability_model.add_bit(value < 0)
-
+            rd.rate += model.add_and_estimate_bit(bit)
+        rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
         return rd
 
     def _estimate_current_rate(self) -> float:
