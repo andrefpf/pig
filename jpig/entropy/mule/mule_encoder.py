@@ -7,9 +7,9 @@ from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD
 from jpig.utils.block_utils import split_blocks_in_half
 
-_Z = bitarray("0")
-_L = bitarray("10")
-_S = bitarray("11")
+_Z = bitarray("1")
+_L = bitarray("00")
+_S = bitarray("01")
 
 
 class MuleEncoder:
@@ -41,21 +41,18 @@ class MuleEncoder:
         self.upper_bitplane = upper_bitplane
 
         self._clear_models()
-        self.flags, estimated_distortion = self._recursive_optimize_encoding_tree(
+        self.flags, self.estimated_rd = self._recursive_optimize_encoding_tree(
             block,
             lower_bitplane,
             upper_bitplane,
         )
-        self.estimated_rd = RD(self._estimate_current_rate(), estimated_distortion)
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
         self.apply_encoding(list(self.flags), block, self.upper_bitplane)
         return self.cabac.end(fill_to_byte=True)
 
-    def apply_encoding(
-        self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int
-    ):
+    def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
         if block.size == 1:
             value = block.flatten()[0]
             for i in range(self.lower_bitplane, upper_bitplane):
@@ -89,74 +86,94 @@ class MuleEncoder:
         block: np.ndarray,
         lower_bitplane: int,
         upper_bitplane: int,
-    ) -> tuple[str, float]:
+    ) -> tuple[str, RD]:
         if block.size == 1:
-            self._update_models_with_value(block, lower_bitplane, upper_bitplane)
-            return "", 0
+            rd = self._update_models_with_value(block, lower_bitplane, upper_bitplane)
+            return "", rd
 
-        lagrangian = self.lagrangian
-
-        zero_flags, zero_distortion = self._estimate_zero_flag(block)
-        zero_rd = RD(self._estimate_current_rate(), zero_distortion)
-        if zero_rd.distortion == 0:
-            return zero_flags, zero_distortion
-
-        if self.is_bitplane_zero(block, upper_bitplane):
-            self._push_models()
-            lower_bp_flags, lower_bp_distortion = self._estimate_lower_bp_flag(
+        self._push_models()
+        should_lower_bitplane = self.is_bitplane_zero(block, upper_bitplane)
+        if should_lower_bitplane:
+            segmentation_flags, segmentation_rd = self._estimate_lower_bp_flag(
                 block,
                 lower_bitplane,
                 upper_bitplane,
             )
-            lower_bp_rd = RD(self._estimate_current_rate(), lower_bp_distortion)
-            if lower_bp_rd.cost(lagrangian) < zero_rd.cost(lagrangian):
-                return lower_bp_flags, lower_bp_distortion
-            self._pop_models()
-            return zero_flags, zero_distortion
+        else:
+            segmentation_flags, segmentation_rd = self._estimate_split_flag(
+                block,
+                lower_bitplane,
+                upper_bitplane,
+            )
 
-        self._push_models()
-        split_flags, split_distortion = self._estimate_split_flag(
-            block,
-            lower_bitplane,
-            upper_bitplane,
+        zero_rd = RD(
+            rate=self.flags_probability_model.estimate_bit(_Z),
+            distortion=np.sum(block.astype(np.int64) ** 2),
         )
-        split_rd = RD(self._estimate_current_rate(), split_distortion)
-        if split_rd.cost(lagrangian) < zero_rd.cost(lagrangian):
-            return split_flags, split_distortion
-        self._pop_models()
-        return zero_flags, zero_distortion
+
+        if segmentation_rd.cost(self.lagrangian) < zero_rd.cost(self.lagrangian):
+            return segmentation_flags, segmentation_rd
+        else:
+            self._pop_models()
+            return self._estimate_zero_flag(block)
 
     def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, float]:
-        distortion = np.sum(block.astype(np.int64) ** 2)
-        return "Z", distortion
+        rd = RD()
+        rd.distortion = np.sum(block.astype(np.int64) ** 2)
+        for bit in _Z:
+            rd.rate += self.flags_probability_model.estimate_bit(bit)
+            self.flags_probability_model.add_bit(bit)
+        return "Z", rd
 
-    def _estimate_lower_bp_flag(
-        self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int
-    ) -> tuple[str, float]:
+    def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, RD]:
+        if lower_bitplane == upper_bitplane:
+            return "L", RD(float("inf"), float("inf"))
+
         new_bitplane = self.find_max_bitplane(block)
         number_of_flags = upper_bitplane - new_bitplane
-        flags, distortion = self._recursive_optimize_encoding_tree(
+
+        flags = "L" * number_of_flags
+        rd = RD()
+
+        for _ in range(number_of_flags):
+            for bit in _L:
+                rd.rate += self.flags_probability_model.estimate_bit(bit)
+                self.flags_probability_model.add_bit(bit)
+
+        current_flags, current_rd = self._recursive_optimize_encoding_tree(
             block,
             lower_bitplane,
             new_bitplane,
         )
-        new_flags = "L" * number_of_flags + flags
-        return new_flags, distortion
+
+        flags += current_flags
+        rd += current_rd
+
+        return flags, rd
 
     def _estimate_split_flag(
-        self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int
-    ) -> tuple[str, float]:
-        distortion = 0
+        self,
+        block: np.ndarray,
+        lower_bitplane: int,
+        upper_bitplane: int,
+    ) -> tuple[str, RD]:
+        rd = RD()
         flags = "S"
+
+        for bit in _S:
+            rd.rate += self.flags_probability_model.estimate_bit(bit)
+            self.flags_probability_model.add_bit(bit)
+
         for sub_block in split_blocks_in_half(block):
-            current_flags, current_distortion = self._recursive_optimize_encoding_tree(
+            current_flags, current_rd = self._recursive_optimize_encoding_tree(
                 sub_block,
                 lower_bitplane,
                 upper_bitplane,
             )
-            distortion += current_distortion
+            rd += current_rd
             flags += current_flags
-        return flags, distortion
+
+        return flags, rd
 
     def _update_models_with_value(
         self,
@@ -164,10 +181,19 @@ class MuleEncoder:
         lower_bitplane: int,
         upper_bitplane: int,
     ):
+        rd = RD()
         value = block.flatten()[0]
+
         for i in range(lower_bitplane, upper_bitplane):
+            bit = (1 << i) & np.abs(value) != 0
             model = self.bitplane_probability_models[i]
-            model.add_bit((1 << i) & np.abs(value) != 0)
+            rd.rate += model.estimate_bit(bit)
+            model.add_bit(bit)
+
+        rd.rate += self.signals_probability_model.estimate_bit(value < 0)
+        self.signals_probability_model.add_bit(value < 0)
+
+        return rd
 
     def _estimate_current_rate(self) -> float:
         all_models = [
@@ -207,4 +233,6 @@ class MuleEncoder:
 
     @staticmethod
     def is_bitplane_zero(block, bitplane):
+        if bitplane == 0:
+            return True
         return np.sum(np.abs(block) & 1 << (bitplane - 1)) == 0

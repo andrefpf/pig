@@ -67,10 +67,10 @@ class MuleDecoder:
     def _decode_flag(self):
         first_bit = self.cabac.decode_bit(model=self.flags_probability_model)
         if first_bit:
+            return "Z"  # 1
+        else:
             second_bit = self.cabac.decode_bit(model=self.flags_probability_model)
-            if second_bit:  # 11
+            if second_bit:  # 01
                 return "S"
-            else:  # 10
+            else:  # 00
                 return "L"
-        else:  # 00
-            return "Z"
