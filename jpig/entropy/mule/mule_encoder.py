@@ -178,7 +178,7 @@ class MuleEncoder:
 
         total_size = 0
         for model in all_models:
-            total_size += model.estimated_rate()
+            total_size += model.total_estimated_rate()
         return total_size
 
     def _push_models(self):

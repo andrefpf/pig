@@ -249,7 +249,7 @@ class MicoEncoder:
     def _estimate_current_rate(self) -> float:
         total_size = 0
         for model in self.probability_models():
-            total_size += model.estimated_rate()
+            total_size += model.total_estimated_rate()
         return total_size
 
     def probability_models(self):

@@ -39,7 +39,7 @@ class ProbabilityModel(ABC):
 
         return -prob_0 * np.log2(prob_0) - prob_1 * np.log2(prob_1)
 
-    def estimated_rate(self) -> float:
+    def total_estimated_rate(self) -> float:
         return self.total_bits() * self.entropy()
 
     @abstractmethod
