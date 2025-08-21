@@ -4,7 +4,7 @@ import numpy as np
 from bitarray import bitarray
 
 from jpig.entropy import CabacEncoder, FrequentistPM
-from jpig.metrics import RD
+from jpig.metrics import RD, energy
 from jpig.utils.block_utils import split_blocks_in_half
 
 _Z = bitarray("1")
@@ -33,18 +33,25 @@ class MuleEncoder:
         block: np.ndarray,
         lagrangian: float = 10_000,
         *,
-        lower_bitplane: int = 0,
-        upper_bitplane: int = 32,
+        lower_bitplane: int = None,
+        upper_bitplane: int = None,
     ) -> bitarray:
+
         self.lagrangian = lagrangian
-        self.lower_bitplane = lower_bitplane
         self.upper_bitplane = upper_bitplane
+        self.lower_bitplane = lower_bitplane
+
+        if self.upper_bitplane is None:
+            self.upper_bitplane = self.find_max_bitplane(block)
+        
+        if self.lower_bitplane is None:
+            self.lower_bitplane = self._find_optimal_lower_bitplane(block)
 
         self._clear_models()
         self.flags, self.estimated_rd = self._recursive_optimize_encoding_tree(
             block,
-            lower_bitplane,
-            upper_bitplane,
+            self.lower_bitplane,
+            self.upper_bitplane,
         )
         self._clear_models()
 
@@ -80,6 +87,25 @@ class MuleEncoder:
 
         else:
             raise ValueError("Invalid encoding")
+
+    def _find_optimal_lower_bitplane(self, block: np.ndarray) -> int:
+        accumulated_rate = 0
+        best_cost = float("inf")
+        lower_bitplane = 0
+
+        for i in reversed(range(0, self.upper_bitplane)):
+            bit_position = 1 << i
+            mask = bit_position - 1
+            model = self.bitplane_probability_models[i]
+            for bit in block.flatten() & bit_position:
+                accumulated_rate += model.add_and_estimate_bit(bool(bit))
+
+            rd = RD(accumulated_rate, energy(block & mask))
+            if rd.cost(self.lagrangian) < best_cost:
+                best_cost = rd.cost(self.lagrangian)
+                lower_bitplane = i
+
+        return lower_bitplane
 
     def _recursive_optimize_encoding_tree(
         self,
@@ -125,7 +151,7 @@ class MuleEncoder:
         return "Z", rd
 
     def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, RD]:
-        if lower_bitplane == upper_bitplane:
+        if lower_bitplane >= upper_bitplane:
             return "L", RD(float("inf"), float("inf"))
 
         new_bitplane = self.find_max_bitplane(block)
@@ -180,6 +206,7 @@ class MuleEncoder:
     ):
         rd = RD()
         value = block.flatten()[0]
+        mask = (1 << self.lower_bitplane) - 1
 
         for i in range(lower_bitplane, upper_bitplane):
             bit = (1 << i) & np.abs(value) != 0

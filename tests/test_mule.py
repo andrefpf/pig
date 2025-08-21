@@ -32,8 +32,6 @@ def test_mule_easy():
         upper_bitplane=max_bitplane,
     )
 
-    print(len(encoded), encoder.estimated_rd, encoder.flags)
-
     assert encoder.flags == "SSLLLSZLLLS"
     assert np.allclose(original, decoded)
 
@@ -43,18 +41,18 @@ def test_mule_random():
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
-    max_bitplane = MuleEncoder.find_max_bitplane(original)
-    encoded = MuleEncoder().encode(
+    encoder = MuleEncoder()
+    decoder = MuleDecoder()
+
+    encoded = encoder.encode(
         original,
         0,
-        lower_bitplane=0,
-        upper_bitplane=max_bitplane,
     )
-    decoded = MuleDecoder().decode(
+    decoded = decoder.decode(
         encoded,
         original.shape,
-        lower_bitplane=0,
-        upper_bitplane=max_bitplane,
+        lower_bitplane=encoder.lower_bitplane,
+        upper_bitplane=encoder.upper_bitplane,
     )
 
     assert np.allclose(original, decoded)
