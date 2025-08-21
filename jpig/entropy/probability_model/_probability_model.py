@@ -44,7 +44,7 @@ class ProbabilityModel(ABC):
 
     def estimate_bit(self, bit: bool) -> float:
         prob = self.probability(1 if bit else 0)
-        return -prob * np.log2(prob)
+        return -np.log2(prob)
 
     @abstractmethod
     def probability(self, bit: bool | Literal[0, 1]) -> float: ...
