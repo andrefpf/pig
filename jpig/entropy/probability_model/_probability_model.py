@@ -42,6 +42,10 @@ class ProbabilityModel(ABC):
     def total_estimated_rate(self) -> float:
         return self.total_bits() * self.entropy()
 
+    def estimate_bit(self, bit: bool) -> float:
+        prob = self.probability(1 if bit else 0)
+        return -prob * np.log2(prob)
+
     @abstractmethod
     def probability(self, bit: bool | Literal[0, 1]) -> float: ...
 
