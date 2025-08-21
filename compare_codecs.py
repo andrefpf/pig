@@ -77,7 +77,7 @@ def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
 
     return RD(
         rate=Path(".tmp/bla.jpl").stat().st_size / num_pixels,
-        distortion=psnr(original, decoded, n_bits=8),
+        distortion=psnr(original, decoded, n_bits=10),
     )
 
 
