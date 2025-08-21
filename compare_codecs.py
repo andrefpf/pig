@@ -59,33 +59,21 @@ def test_webp(path: str, quality: int) -> RD:
 
 def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
     path = Path(path).expanduser()
-    original = Image.open(path).convert("L")
-    original_array = np.array(original).astype(np.uint16)
 
-    Path(".tmp/tmp/0/").mkdir(parents=True, exist_ok=True)
     Path(".tmp/bla/").mkdir(parents=True, exist_ok=True)
 
-    pgx_handler = PGXHandler()
-    pgx_handler.write(".tmp/tmp/0/000_000.pgx", original_array)
-
-    encoder_command = f"/home/andre/Documents/parallel-jplm/bin/jpl-encoder-bin -i ./datasets/images/cameraman -o .tmp/bla.jpl -c pleno_config.json -errorest"
-    encoder_command += f" --lambda {lagrangian} --view_width {256} --view_height {256} --threads 4"
+    encoder_command = f"/home/andre/Documents/parallel-jplm/bin/jpl-encoder-bin -i {path} -o .tmp/bla.jpl -c pleno_config.json -errorest"
+    encoder_command += f" --lambda {lagrangian} --view_width {625} --view_height {434} --threads 4"
     result = subprocess.run(encoder_command.split())
-    print(result)
 
     decoder_command = "/home/andre/Documents/parallel-jplm/bin/jpl-decoder-bin -i .tmp/bla.jpl -o .tmp/bla/"
     subprocess.run(decoder_command.split())
 
-    output_path = Path(".tmp/bla/0/000_000.pgx")
-    decoded = pgx_handler.read(output_path)
-    num_pixels = 256 * 256
-
-    import matplotlib.pyplot as plt
-
-    print("AAAAAAAAAAAAAA", np.min(decoded), np.max(decoded))
-    a = plt.imshow(decoded, cmap="gray")
-    plt.colorbar(a)
-    plt.show()
+    
+    handler = PGXHandler()
+    original = handler.read(path / "0/000_000.pgx")
+    decoded = handler.read(".tmp/bla/0/000_000.pgx")
+    num_pixels = original.size
 
     return RD(
         rate=Path(".tmp/bla.jpl").stat().st_size / num_pixels,
@@ -149,8 +137,8 @@ def test_mico_quantized(path: str, quality: int) -> RD:
 
 
 if __name__ == "__main__":
-    path = Path("datasets/images/cameraman.pgm").expanduser()
-    path_pleno = Path("datasets/images/cameraman/").expanduser()
+    path = Path("datasets/images/bikes_middle_view.pgm").expanduser()
+    path_pleno = Path("datasets/images/Bikes/").expanduser()
 
     parameters = [
         (10,),
@@ -187,12 +175,16 @@ if __name__ == "__main__":
     ]
 
     lagrangians_pleno = [
-        # (1e-10,),
-        # (1,),
-        # (10,),
-        (10_000,),
-        # (1_000_000,),
+        (10,),
+        (100,),
+        (500,),
+        (1000,),
     ]
+
+    webp_curve = find_rd_curve(
+        lambda quality: test_webp(path, quality),
+        args_sequence=parameters,
+    )
 
     jpeg_curve = find_rd_curve(
         lambda quality: test_jpeg(path, quality),
@@ -204,15 +196,10 @@ if __name__ == "__main__":
         args_sequence=jpeg_2k_parameters,
     )
 
-    webp_curve = find_rd_curve(
-        lambda quality: test_webp(path, quality),
-        args_sequence=parameters,
+    jpeg_pleno_curve = find_rd_curve(
+        lambda quality: test_jpeg_pleno(path_pleno, quality),
+        args_sequence=lagrangians_pleno,
     )
-
-    # jpeg_pleno_curve = find_rd_curve(
-    #     lambda quality: test_jpeg_pleno(path_pleno, quality),
-    #     args_sequence=lagrangians_pleno,
-    # )
 
     mule_curve = find_rd_curve(
         lambda quality: test_mule(path, quality),
@@ -230,10 +217,10 @@ if __name__ == "__main__":
     )
 
     plot_rd_curves(
+        webp_curve=webp_curve,
         jpeg_curve=jpeg_curve,
         jpeg_2000_curve=jpeg_2000_curve,
-        # jpeg_pleno_curve=jpeg_pleno_curve,
-        webp_curve=webp_curve,
+        jpeg_pleno_curve=jpeg_pleno_curve,
         mule_curve=mule_curve,
         mico_curve=mico_curve,
         mico_quantized_curve=mico_quantized_curve,
