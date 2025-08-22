@@ -1,6 +1,6 @@
 import subprocess
-from pathlib import Path
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     plot_rd_curves(
         webp_curve=find_rd_curve(partial(test_webp, path), parameters),
         jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
-        jpeg_2000_curve=find_rd_curve(partial(test_webp, path), jpeg_2k_parameters),
+        jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
         jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
         mule_curve=find_rd_curve(partial(test_mule, path), lagrangians_mule),
         mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
