@@ -10,8 +10,8 @@
   "transform_size": {
     "maximum": {
       "intra-view": {
-        "vertical": 32,
-        "horizontal": 32
+        "vertical": 16,
+        "horizontal": 16
       },
       "inter-view": {
         "vertical": 1,
@@ -20,8 +20,8 @@
     },
     "minimum": {
       "intra-view": {
-        "vertical": 4,
-        "horizontal": 4
+        "vertical": 16,
+        "horizontal": 16
       },
       "inter-view": {
         "vertical": 1,
