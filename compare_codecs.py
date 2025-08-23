@@ -1,4 +1,5 @@
 import subprocess
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -22,7 +23,7 @@ def test_jpeg(path: str | Path, quality: int) -> RD:
 
     num_pixels = original.width * original.height
     return RD(
-        rate=output_path.stat().st_size / num_pixels,
+        rate=output_path.stat().st_size * 8 / num_pixels,
         distortion=psnr(original, decoded, n_bits=8),
     )
 
@@ -37,7 +38,7 @@ def test_jpeg_2000(path: str | Path, target_psnr: int) -> RD:
 
     num_pixels = original.width * original.height
     return RD(
-        rate=output_path.stat().st_size / num_pixels,
+        rate=output_path.stat().st_size * 8 / num_pixels,
         distortion=psnr(original, decoded, n_bits=8),
     )
 
@@ -52,7 +53,7 @@ def test_webp(path: str, quality: int) -> RD:
     num_pixels = original.width * original.height
 
     return RD(
-        rate=output_path.stat().st_size / num_pixels,
+        rate=output_path.stat().st_size * 8 / num_pixels,
         distortion=psnr(original, decoded, n_bits=8),
     )
 
@@ -76,7 +77,7 @@ def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
     num_pixels = original.size
 
     return RD(
-        rate=Path(".tmp/bla.jpl").stat().st_size / num_pixels,
+        rate=Path(".tmp/bla.jpl").stat().st_size * 8 / num_pixels,
         distortion=psnr(original, decoded, n_bits=10),
     )
 
@@ -181,47 +182,12 @@ if __name__ == "__main__":
         (1000,),
     ]
 
-    webp_curve = find_rd_curve(
-        lambda quality: test_webp(path, quality),
-        args_sequence=parameters,
-    )
-
-    jpeg_curve = find_rd_curve(
-        lambda quality: test_jpeg(path, quality),
-        args_sequence=parameters,
-    )
-
-    jpeg_2000_curve = find_rd_curve(
-        lambda quality: test_jpeg_2000(path, quality),
-        args_sequence=jpeg_2k_parameters,
-    )
-
-    jpeg_pleno_curve = find_rd_curve(
-        lambda quality: test_jpeg_pleno(path_pleno, quality),
-        args_sequence=lagrangians_pleno,
-    )
-
-    mule_curve = find_rd_curve(
-        lambda quality: test_mule(path, quality),
-        args_sequence=lagrangians_mule,
-    )
-
-    mico_curve = find_rd_curve(
-        lambda quality: test_mico(path, quality),
-        args_sequence=lagrangians_mico,
-    )
-
-    mico_quantized_curve = find_rd_curve(
-        lambda quality: test_mico_quantized(path, quality),
-        args_sequence=parameters,
-    )
-
     plot_rd_curves(
-        webp_curve=webp_curve,
-        jpeg_curve=jpeg_curve,
-        jpeg_2000_curve=jpeg_2000_curve,
-        jpeg_pleno_curve=jpeg_pleno_curve,
-        mule_curve=mule_curve,
-        mico_curve=mico_curve,
-        mico_quantized_curve=mico_quantized_curve,
+        webp_curve=find_rd_curve(partial(test_webp, path), parameters),
+        jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
+        jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
+        jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
+        mule_curve=find_rd_curve(partial(test_mule, path), lagrangians_mule),
+        mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
+        mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
     )
