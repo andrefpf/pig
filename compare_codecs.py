@@ -64,8 +64,8 @@ def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
     Path(".tmp/bla/").mkdir(parents=True, exist_ok=True)
 
     encoder_command = f"/home/andre/Documents/parallel-jplm/bin/jpl-encoder-bin -i {path} -o .tmp/bla.jpl -c pleno_config.json -errorest"
-    encoder_command += f" --lambda {lagrangian} --view_width {625} --view_height {434} --threads 4"
-    result = subprocess.run(encoder_command.split())
+    encoder_command += f" --lambda {lagrangian} --view_width {624} --view_height {432} --threads 4"
+    subprocess.run(encoder_command.split())
 
     decoder_command = "/home/andre/Documents/parallel-jplm/bin/jpl-decoder-bin -i .tmp/bla.jpl -o .tmp/bla/"
     subprocess.run(decoder_command.split())
@@ -138,8 +138,8 @@ def test_mico_quantized(path: str, quality: int) -> RD:
 
 
 if __name__ == "__main__":
-    path = Path("datasets/images/bikes_middle_view.pgm").expanduser()
-    path_pleno = Path("datasets/images/Bikes/").expanduser()
+    path = Path("datasets/images/bikes_cropped.pgm").expanduser()
+    path_pleno = Path("datasets/images/Bikes_cropped/").expanduser()
 
     parameters = [
         (10,),
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
         jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
         jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
-        mule_curve=find_rd_curve(partial(test_mule, path), lagrangians_mule),
+        mule_curve=find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians_mule),
         mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
         mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
     )
