@@ -92,11 +92,13 @@ class MuleEncoder:
         upper_bitplane: int,
         signed: bool = True,
     ):
+        absolute = np.abs(value)
         for i in range(lower_bitplane, upper_bitplane):
-            bit = (1 << i) & np.abs(value) != 0
+            bit = ((1 << i) & absolute) != 0
             self.cabac.encode_bit(bit, model=self.bitplane_probability_models[i])
 
-        if signed:
+        mask = (1 << lower_bitplane) - 1
+        if signed and (absolute & ~mask) != 0:
             self.cabac.encode_bit(value < 0, model=self.signals_probability_model)
 
     def _find_optimal_lower_bitplane(self, block: np.ndarray) -> int:

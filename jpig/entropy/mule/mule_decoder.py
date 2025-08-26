@@ -64,7 +64,7 @@ class MuleDecoder:
             bit = self.cabac.decode_bit(model=self.bitplane_probability_models[i])
             value |= bit << i
 
-        if signed:
+        if signed and value != 0:
             signal = self.cabac.decode_bit(model=self.signals_probability_model)
             if signal:
                 value = -value
