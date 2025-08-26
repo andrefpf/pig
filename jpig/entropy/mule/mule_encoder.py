@@ -36,14 +36,13 @@ class MuleEncoder:
         lower_bitplane: int = None,
         upper_bitplane: int = None,
     ) -> bitarray:
-
         self.lagrangian = lagrangian
         self.upper_bitplane = upper_bitplane
         self.lower_bitplane = lower_bitplane
 
         if self.upper_bitplane is None:
             self.upper_bitplane = self.find_max_bitplane(block)
-        
+
         if self.lower_bitplane is None:
             self.lower_bitplane = self._find_optimal_lower_bitplane(block)
 
@@ -62,10 +61,7 @@ class MuleEncoder:
     def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
         if block.size == 1:
             value = block.flatten()[0]
-            for i in range(self.lower_bitplane, upper_bitplane):
-                bit = (1 << i) & np.abs(value) != 0
-                self.cabac.encode_bit(bit, model=self.bitplane_probability_models[i])
-            self.cabac.encode_bit(value < 0, model=self.signals_probability_model)
+            self.encode_int(value, self.lower_bitplane, upper_bitplane)
             return
 
         flag = flags.pop(0)
@@ -87,6 +83,20 @@ class MuleEncoder:
 
         else:
             raise ValueError("Invalid encoding")
+
+    def encode_int(
+        self,
+        value: int,
+        lower_bitplane: int,
+        upper_bitplane: int,
+        signed: bool = True,
+    ):
+        for i in range(lower_bitplane, upper_bitplane):
+            bit = (1 << i) & np.abs(value) != 0
+            self.cabac.encode_bit(bit, model=self.bitplane_probability_models[i])
+
+        if signed:
+            self.cabac.encode_bit(value < 0, model=self.signals_probability_model)
 
     def _find_optimal_lower_bitplane(self, block: np.ndarray) -> int:
         accumulated_rate = 0
@@ -114,7 +124,7 @@ class MuleEncoder:
         upper_bitplane: int,
     ) -> tuple[str, RD]:
         if block.size == 1:
-            rd = self._update_models_with_value(block, lower_bitplane, upper_bitplane)
+            rd = self._estimate_integer(block, lower_bitplane, upper_bitplane)
             return "", rd
 
         self._push_models()
@@ -143,7 +153,7 @@ class MuleEncoder:
             self._pop_models()
             return self._estimate_zero_flag(block)
 
-    def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, float]:
+    def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, RD]:
         rd = RD()
         rd.distortion = np.sum(block.astype(np.int64) ** 2)
         for bit in _Z:
@@ -198,20 +208,20 @@ class MuleEncoder:
 
         return flags, rd
 
-    def _update_models_with_value(
+    def _estimate_integer(
         self,
         block: np.ndarray,
         lower_bitplane: int,
         upper_bitplane: int,
-    ):
+    ) -> RD:
         rd = RD()
         value = block.flatten()[0]
-        mask = (1 << self.lower_bitplane) - 1
 
         for i in range(lower_bitplane, upper_bitplane):
             bit = (1 << i) & np.abs(value) != 0
             model = self.bitplane_probability_models[i]
             rd.rate += model.add_and_estimate_bit(bit)
+
         rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
         return rd
 

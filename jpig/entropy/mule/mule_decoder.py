@@ -36,18 +36,7 @@ class MuleDecoder:
 
     def apply_decoding(self, block: np.ndarray, bitplane: int = 32):
         if block.size == 1:
-            value = np.int64()
-
-            for i in range(self.lower_bitplane, bitplane):
-                bit = self.cabac.decode_bit(model=self.bitplane_probability_models[i])
-                if bit:
-                    value |= 1 << i
-
-            signal = self.cabac.decode_bit(model=self.signals_probability_model)
-            if signal:
-                value = -value
-
-            block[:] = value
+            block[:] = self.decode_int(self.lower_bitplane, bitplane)
             return
 
         flag = self._decode_flag()
@@ -63,6 +52,25 @@ class MuleDecoder:
 
         else:
             raise ValueError("Invalid encoding")
+
+    def decode_int(
+        self,
+        lower_bitplane: int,
+        upper_bitplane: int,
+        signed: bool = True,
+    ) -> int:
+        value = 0
+
+        for i in range(lower_bitplane, upper_bitplane):
+            bit = self.cabac.decode_bit(model=self.bitplane_probability_models[i])
+            value |= bit << i
+
+        if signed:
+            signal = self.cabac.decode_bit(model=self.signals_probability_model)
+            if signal:
+                value = -value
+
+        return value
 
     def _decode_flag(self):
         first_bit = self.cabac.decode_bit(model=self.flags_probability_model)
