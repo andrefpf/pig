@@ -219,13 +219,17 @@ class MuleEncoder:
     ) -> RD:
         rd = RD()
         value = block.flatten()[0]
+        absolute = np.abs(value)
 
         for i in range(lower_bitplane, upper_bitplane):
-            bit = (1 << i) & np.abs(value) != 0
+            bit = ((1 << i) & absolute) != 0
             model = self.bitplane_probability_models[i]
             rd.rate += model.add_and_estimate_bit(bit)
 
-        rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
+        mask = (1 << lower_bitplane) - 1
+        if (absolute & ~mask) != 0:
+            rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
+
         return rd
 
     def _estimate_current_rate(self) -> float:
