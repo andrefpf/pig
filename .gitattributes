@@ -1,0 +1,2 @@
+*.pgx filter=lfs diff=lfs merge=lfs -text
+*.pgm filter=lfs diff=lfs merge=lfs -text
