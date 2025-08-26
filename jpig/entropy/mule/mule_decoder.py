@@ -22,14 +22,13 @@ class MuleDecoder:
         bitstream: bitarray,
         shape: tuple[int],
         *,
-        lower_bitplane: int = 0,
         upper_bitplane: int = 32,
     ) -> np.ndarray:
-        self.lower_bitplane = lower_bitplane
         self.upper_bitplane = upper_bitplane
         block = np.zeros(shape)
 
         self.cabac.start(bitstream)
+        self.lower_bitplane = self.decode_int(0, 5, signed=False)
         self.apply_decoding(block, self.upper_bitplane)
         self.cabac.end()
         return block

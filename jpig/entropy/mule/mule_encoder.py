@@ -55,6 +55,7 @@ class MuleEncoder:
         self._clear_models()
 
         self.cabac.start(result=self.bitstream)
+        self.encode_int(self.lower_bitplane, 0, 5, signed=False)
         self.apply_encoding(list(self.flags), block, self.upper_bitplane)
         return self.cabac.end(fill_to_byte=True)
 

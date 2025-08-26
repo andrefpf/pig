@@ -28,7 +28,6 @@ def test_mule_easy():
     decoded = decoder.decode(
         encoded,
         original.shape,
-        lower_bitplane=0,
         upper_bitplane=max_bitplane,
     )
 
@@ -51,7 +50,6 @@ def test_mule_random():
     decoded = decoder.decode(
         encoded,
         original.shape,
-        lower_bitplane=encoder.lower_bitplane,
         upper_bitplane=encoder.upper_bitplane,
     )
 
