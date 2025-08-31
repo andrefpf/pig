@@ -13,14 +13,17 @@ class BlockedMule:
         self,
         data: np.ndarray,
         lagrangian: float,
-        block_size: int = 8,
+        block_size: int = 16,
+        bitdepth: int = 8,
     ) -> bitarray:
-        max_bitplane = ceil(np.log2(np.max(data.astype(np.int64)) ** data.ndim))
+
+        max_bitplane = data.ndim * (bitdepth - 1)
 
         bitstream = bitarray()
         block_encoded_sizes = []
 
-        for block in split_blocks_equal_size(data, block_size):
+        shifted = data.astype(np.int32) - (1 << (bitdepth - 1))
+        for block in split_blocks_equal_size(shifted, block_size):
             mule_encoder = MuleEncoder()
             transformed_block: np.ndarray = dctn(block, norm="ortho")
             transformed_block = transformed_block.round().astype(int)
@@ -42,6 +45,7 @@ class BlockedMule:
         for size in block_encoded_sizes:
             header.extend(f"{size:032b}")
         
+        header.extend(f"{bitdepth:08b}")
         header.extend(f"{max_bitplane:08b}")
 
         return header + bitstream
@@ -62,6 +66,7 @@ class BlockedMule:
             size = self._consume_bytes(codestream, 32)
             block_encoded_sizes.append(size)
 
+        bitdepth = self._consume_bytes(codestream, 8)
         max_bitplane = self._consume_bytes(codestream, 8)
 
         last_pos = 0
@@ -84,6 +89,7 @@ class BlockedMule:
             decoded_block = decoded_block.round().astype(int)
             block[:] = decoded_block
 
+        decoded += (1 << (bitdepth - 1))
         return decoded
 
     def _consume_bytes(self, codestream: bitarray, number_of_bytes: int) -> bitarray:
