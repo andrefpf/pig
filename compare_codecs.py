@@ -89,6 +89,7 @@ def test_mule(path: str, lagrangian: float) -> RD:
         img,
         lagrangian=lagrangian,
         block_size=16,
+        bitdepth=img.bitdepth,
     )
 
     codec_1 = BlockedMule()
