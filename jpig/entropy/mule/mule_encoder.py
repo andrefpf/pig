@@ -146,7 +146,7 @@ class MuleEncoder:
             )
 
         zero_rd = RD(
-            rate=self.flag_probability_models[upper_bitplane].estimate_bit(_Z),
+            rate=self.flag_probability_models[upper_bitplane * 2].estimate_bit(0),
             distortion=np.sum(block.astype(np.int64) ** 2),
         )
 
@@ -159,8 +159,7 @@ class MuleEncoder:
     def _estimate_zero_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, RD]:
         rd = RD()
         rd.distortion = np.sum(block.astype(np.int64) ** 2)
-        for bit in _Z:
-            rd.rate += self.flag_probability_models[upper_bitplane].add_and_estimate_bit(bit)
+        rd.rate += self.flag_probability_models[upper_bitplane * 2].add_and_estimate_bit(1)
         return "Z", rd
 
     def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, RD]:
@@ -174,8 +173,8 @@ class MuleEncoder:
         rd = RD()
 
         for _ in range(number_of_flags):
-            for bit in _L:
-                rd.rate += self.flag_probability_models[upper_bitplane].add_and_estimate_bit(bit)
+            rd.rate += self.flag_probability_models[upper_bitplane * 2 + 0].add_and_estimate_bit(0)
+            rd.rate += self.flag_probability_models[upper_bitplane * 2 + 1].add_and_estimate_bit(0)
 
         current_flags, current_rd = self._recursive_optimize_encoding_tree(
             block,
@@ -197,8 +196,8 @@ class MuleEncoder:
         rd = RD()
         flags = "S"
 
-        for bit in _S:
-            rd.rate += self.flag_probability_models[upper_bitplane].add_and_estimate_bit(bit)
+        rd.rate += self.flag_probability_models[upper_bitplane * 2 + 0].add_and_estimate_bit(0)
+        rd.rate += self.flag_probability_models[upper_bitplane * 2 + 1].add_and_estimate_bit(1)
 
         for sub_block in split_blocks_in_half(block):
             current_flags, current_rd = self._recursive_optimize_encoding_tree(
@@ -229,14 +228,8 @@ class MuleEncoder:
         return rd
 
     def _estimate_current_rate(self) -> float:
-        all_models = [
-            self.signals_probability_model,
-            *self.flag_probability_models,
-            *self.bitplane_probability_models,
-        ]
-
         total_size = 0
-        for model in all_models:
+        for model in self.probability_models():
             total_size += model.total_estimated_rate()
         return total_size
 
