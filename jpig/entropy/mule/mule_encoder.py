@@ -49,7 +49,6 @@ class MuleEncoder:
         self._clear_models()
         self.flags, self.estimated_rd = self._recursive_optimize_encoding_tree(
             block,
-            self.lower_bitplane,
             self.upper_bitplane,
         )
         self._clear_models()
@@ -60,6 +59,9 @@ class MuleEncoder:
         return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
+        if upper_bitplane < self.lower_bitplane or upper_bitplane == 0:
+            return
+
         if block.size == 1:
             value = block.flatten()[0]
             self.encode_int(value, self.lower_bitplane, upper_bitplane)
@@ -123,11 +125,17 @@ class MuleEncoder:
     def _recursive_optimize_encoding_tree(
         self,
         block: np.ndarray,
-        lower_bitplane: int,
         upper_bitplane: int,
     ) -> tuple[str, RD]:
+        if upper_bitplane < self.lower_bitplane or upper_bitplane == 0:
+            rd = RD(
+                rate=0,
+                distortion=energy(block),
+            )
+            return "", rd
+
         if block.size == 1:
-            rd = self._estimate_integer(block, lower_bitplane, upper_bitplane)
+            rd = self._estimate_integer(block, self.lower_bitplane, upper_bitplane)
             return "", rd
 
         self._push_models()
@@ -135,19 +143,17 @@ class MuleEncoder:
         if should_lower_bitplane:
             segmentation_flags, segmentation_rd = self._estimate_lower_bp_flag(
                 block,
-                lower_bitplane,
                 upper_bitplane,
             )
         else:
             segmentation_flags, segmentation_rd = self._estimate_split_flag(
                 block,
-                lower_bitplane,
                 upper_bitplane,
             )
 
         zero_rd = RD(
             rate=self.flag_probability_models[upper_bitplane * 2].estimate_bit(0),
-            distortion=np.sum(block.astype(np.int64) ** 2),
+            distortion=energy(block),
         )
 
         if segmentation_rd.cost(self.lagrangian) < zero_rd.cost(self.lagrangian):
@@ -158,14 +164,11 @@ class MuleEncoder:
 
     def _estimate_zero_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, RD]:
         rd = RD()
-        rd.distortion = np.sum(block.astype(np.int64) ** 2)
+        rd.distortion = energy(block)
         rd.rate += self.flag_probability_models[upper_bitplane * 2].add_and_estimate_bit(1)
         return "Z", rd
 
-    def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, RD]:
-        if lower_bitplane >= upper_bitplane:
-            return "L", RD(float("inf"), float("inf"))
-
+    def _estimate_lower_bp_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, RD]:
         new_bitplane = self.find_max_bitplane(block)
         number_of_flags = upper_bitplane - new_bitplane
 
@@ -178,7 +181,6 @@ class MuleEncoder:
 
         current_flags, current_rd = self._recursive_optimize_encoding_tree(
             block,
-            lower_bitplane,
             new_bitplane,
         )
 
@@ -190,7 +192,6 @@ class MuleEncoder:
     def _estimate_split_flag(
         self,
         block: np.ndarray,
-        lower_bitplane: int,
         upper_bitplane: int,
     ) -> tuple[str, RD]:
         rd = RD()
@@ -202,7 +203,6 @@ class MuleEncoder:
         for sub_block in split_blocks_in_half(block):
             current_flags, current_rd = self._recursive_optimize_encoding_tree(
                 sub_block,
-                lower_bitplane,
                 upper_bitplane,
             )
             rd += current_rd
@@ -224,7 +224,10 @@ class MuleEncoder:
             model = self.bitplane_probability_models[i]
             rd.rate += model.add_and_estimate_bit(bit)
 
+        mask = (1 << lower_bitplane) - 1
         rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
+        rd.distortion += energy(block & mask)
+
         return rd
 
     def _estimate_current_rate(self) -> float:
@@ -261,4 +264,4 @@ class MuleEncoder:
     def is_bitplane_zero(block, bitplane):
         if bitplane == 0:
             return True
-        return np.sum(np.abs(block) & 1 << (bitplane - 1)) == 0
+        return not np.any(np.abs(block) & 1 << (bitplane - 1))

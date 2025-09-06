@@ -34,6 +34,9 @@ class MuleDecoder:
         return block
 
     def apply_decoding(self, block: np.ndarray, bitplane: int = 32):
+        if bitplane < self.lower_bitplane or bitplane == 0:
+            return
+
         if block.size == 1:
             block[:] = self.decode_int(self.lower_bitplane, bitplane)
             return
