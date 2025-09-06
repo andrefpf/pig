@@ -10,9 +10,9 @@ class MuleDecoder:
         self.lower_bitplane = 0
         self.upper_bitplane = 32
 
-        self.flags_probability_model = FrequentistPM()
         self.signals_probability_model = FrequentistPM()
-        self.bitplane_probability_models = [FrequentistPM() for _ in range(32)]
+        self.flag_probability_models = [FrequentistPM() for _ in range(self.upper_bitplane * 2)]
+        self.bitplane_probability_models = [FrequentistPM() for _ in range(self.upper_bitplane)]
 
         self.bitstream = bitarray()
         self.cabac = CabacDecoder()
@@ -38,7 +38,7 @@ class MuleDecoder:
             block[:] = self.decode_int(self.lower_bitplane, bitplane)
             return
 
-        flag = self._decode_flag()
+        flag = self._decode_flag(bitplane)
         if flag == "Z":
             return
 
@@ -71,13 +71,17 @@ class MuleDecoder:
 
         return value
 
-    def _decode_flag(self):
-        first_bit = self.cabac.decode_bit(model=self.flags_probability_model)
+    def _decode_flag(self, bitplane: int):
+        first_bit_model = self.flag_probability_models[bitplane * 2 + 0]
+        first_bit = self.cabac.decode_bit(model=first_bit_model)
+
         if first_bit:
             return "Z"  # 1
         else:
-            second_bit = self.cabac.decode_bit(model=self.flags_probability_model)
-            if second_bit:  # 01
-                return "S"
-            else:  # 00
-                return "L"
+            second_bit_model = self.flag_probability_models[bitplane * 2 + 1]
+            second_bit = self.cabac.decode_bit(model=second_bit_model)
+
+            if second_bit:
+                return "S"  # 01
+            else:
+                return "L"  # 00

@@ -21,9 +21,9 @@ class MuleEncoder:
         self.upper_bitplane = 32
         self.lagrangian = 10_000
 
-        self.flags_probability_model = FrequentistPM()
         self.signals_probability_model = FrequentistPM()
-        self.bitplane_probability_models = [FrequentistPM() for _ in range(32)]
+        self.flag_probability_models = [FrequentistPM() for _ in range(self.upper_bitplane * 2)]
+        self.bitplane_probability_models = [FrequentistPM() for _ in range(self.upper_bitplane)]
 
         self.bitstream = bitarray()
         self.cabac = CabacEncoder()
@@ -68,17 +68,19 @@ class MuleEncoder:
         flag = flags.pop(0)
 
         if flag == "Z":
-            for bit in _Z:
-                self.cabac.encode_bit(bit, model=self.flags_probability_model)
+            # 1
+            self.cabac.encode_bit(1, model=self.flag_probability_models[upper_bitplane * 2])
 
         elif flag == "L":
-            for bit in _L:
-                self.cabac.encode_bit(bit, model=self.flags_probability_model)
+            # 00
+            self.cabac.encode_bit(0, model=self.flag_probability_models[upper_bitplane * 2 + 0])
+            self.cabac.encode_bit(0, model=self.flag_probability_models[upper_bitplane * 2 + 1])
             self.apply_encoding(flags, block, upper_bitplane - 1)
 
         elif flag == "S":
-            for bit in _S:
-                self.cabac.encode_bit(bit, model=self.flags_probability_model)
+            # 01
+            self.cabac.encode_bit(0, model=self.flag_probability_models[upper_bitplane * 2 + 0])
+            self.cabac.encode_bit(1, model=self.flag_probability_models[upper_bitplane * 2 + 1])
             for sub_block in split_blocks_in_half(block):
                 self.apply_encoding(flags, sub_block, upper_bitplane)
 
@@ -144,7 +146,7 @@ class MuleEncoder:
             )
 
         zero_rd = RD(
-            rate=self.flags_probability_model.estimate_bit(_Z),
+            rate=self.flag_probability_models[upper_bitplane].estimate_bit(_Z),
             distortion=np.sum(block.astype(np.int64) ** 2),
         )
 
@@ -152,13 +154,13 @@ class MuleEncoder:
             return segmentation_flags, segmentation_rd
         else:
             self._pop_models()
-            return self._estimate_zero_flag(block)
+            return self._estimate_zero_flag(block, upper_bitplane)
 
-    def _estimate_zero_flag(self, block: np.ndarray) -> tuple[str, RD]:
+    def _estimate_zero_flag(self, block: np.ndarray, upper_bitplane: int) -> tuple[str, RD]:
         rd = RD()
         rd.distortion = np.sum(block.astype(np.int64) ** 2)
         for bit in _Z:
-            rd.rate += self.flags_probability_model.add_and_estimate_bit(bit)
+            rd.rate += self.flag_probability_models[upper_bitplane].add_and_estimate_bit(bit)
         return "Z", rd
 
     def _estimate_lower_bp_flag(self, block: np.ndarray, lower_bitplane: int, upper_bitplane: int) -> tuple[str, RD]:
@@ -173,7 +175,7 @@ class MuleEncoder:
 
         for _ in range(number_of_flags):
             for bit in _L:
-                rd.rate += self.flags_probability_model.add_and_estimate_bit(bit)
+                rd.rate += self.flag_probability_models[upper_bitplane].add_and_estimate_bit(bit)
 
         current_flags, current_rd = self._recursive_optimize_encoding_tree(
             block,
@@ -196,7 +198,7 @@ class MuleEncoder:
         flags = "S"
 
         for bit in _S:
-            rd.rate += self.flags_probability_model.add_and_estimate_bit(bit)
+            rd.rate += self.flag_probability_models[upper_bitplane].add_and_estimate_bit(bit)
 
         for sub_block in split_blocks_in_half(block):
             current_flags, current_rd = self._recursive_optimize_encoding_tree(
@@ -228,8 +230,8 @@ class MuleEncoder:
 
     def _estimate_current_rate(self) -> float:
         all_models = [
-            self.flags_probability_model,
             self.signals_probability_model,
+            *self.flag_probability_models,
             *self.bitplane_probability_models,
         ]
 
@@ -252,8 +254,8 @@ class MuleEncoder:
 
     def probability_models(self):
         return [
-            self.flags_probability_model,
             self.signals_probability_model,
+            *self.flag_probability_models,
             *self.bitplane_probability_models,
         ]
 
