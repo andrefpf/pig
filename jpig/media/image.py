@@ -13,13 +13,18 @@ class RawImage(np.ndarray):
 
     @classmethod
     def from_file(cls, path: str | Path):
+        path = Path(path).expanduser()
+
         if path.suffix.lower() == ".pgx":
             from jpig.utils.pgx_handler import PGXHandler
+
             obj = cls(PGXHandler().read(path))
             obj.bitdepth = 10  # TODO: actually read it
             return obj
+
         else:
             from PIL import Image
+
             return cls(Image.open(path))
 
     def width(self):
