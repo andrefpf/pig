@@ -157,7 +157,7 @@ class MuleEncoder:
             )
 
         zero_rd = RD(
-            rate=self.flag_probability_models[upper_bitplane * 2].estimate_bit(0),
+            rate=self.flag_probability_models[upper_bitplane * 2].estimate_bit(1),
             distortion=energy(block),
         )
 
