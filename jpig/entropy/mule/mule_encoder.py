@@ -219,17 +219,20 @@ class MuleEncoder:
         lower_bitplane: int,
         upper_bitplane: int,
     ) -> RD:
-        rd = RD()
         value = block.flatten()[0]
+        mask = (1 << lower_bitplane) - 1
+        masked_value = np.abs(value) & mask
+
+        rd = RD()
+        rd.distortion += energy(masked_value)
 
         for i in range(lower_bitplane, upper_bitplane):
-            bit = (1 << i) & np.abs(value) != 0
+            bit = (1 << i) & masked_value != 0
             model = self.bitplane_probability_models[i]
             rd.rate += model.add_and_estimate_bit(bit)
 
-        mask = (1 << lower_bitplane) - 1
-        rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
-        rd.distortion += energy(block & mask)
+        if masked_value != 0:
+            rd.rate += self.signals_probability_model.add_and_estimate_bit(value < 0)
 
         return rd
 
