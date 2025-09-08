@@ -7,10 +7,6 @@ from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD, energy
 from jpig.utils.block_utils import split_blocks_in_half
 
-_Z = bitarray("1")
-_L = bitarray("00")
-_S = bitarray("01")
-
 
 class MuleEncoder:
     def __init__(self):
@@ -104,18 +100,25 @@ class MuleEncoder:
             self.cabac.encode_bit(value < 0, model=self.signals_probability_model)
 
     def _find_optimal_lower_bitplane(self, block: np.ndarray) -> int:
+        lower_bitplane = 0
         accumulated_rate = 0
         best_cost = float("inf")
-        lower_bitplane = 0
+        magnitudes = np.abs(block.flatten())
 
         for i in reversed(range(0, self.upper_bitplane)):
             bit_position = 1 << i
             mask = bit_position - 1
             model = self.bitplane_probability_models[i]
-            for bit in block.flatten() & bit_position:
-                accumulated_rate += model.add_and_estimate_bit(bool(bit))
+            non_zeroed = magnitudes > bit_position
 
-            rd = RD(accumulated_rate, energy(block & mask))
+            bits_to_encode = magnitudes[non_zeroed] & bit_position != 0
+            for bit in bits_to_encode:
+                accumulated_rate += model.add_and_estimate_bit(bit)
+
+            sign_rate = np.sum(non_zeroed)
+            total_rate = accumulated_rate + sign_rate
+            rd = RD(total_rate, energy(magnitudes & mask))
+
             if rd.cost(self.lagrangian) < best_cost:
                 best_cost = rd.cost(self.lagrangian)
                 lower_bitplane = i
