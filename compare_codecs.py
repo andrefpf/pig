@@ -61,10 +61,15 @@ def test_webp(path: str, quality: int) -> RD:
 def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
     path = Path(path).expanduser()
 
+    with open(path / "0/000_000.pgx", "rb") as file:
+        info = PGXHandler()._read_header(file)
+    width = info.width
+    height = info.height
+
     Path(".tmp/bla/").mkdir(parents=True, exist_ok=True)
 
     encoder_command = f"/home/andre/Documents/parallel-jplm/bin/jpl-encoder-bin -i {path} -o .tmp/bla.jpl -c pleno_config.json -errorest"
-    encoder_command += f" --lambda {lagrangian} --view_width {624} --view_height {432} --threads 4"
+    encoder_command += f" --lambda {lagrangian} --view_width {width} --view_height {height} --threads 4"
     subprocess.run(encoder_command.split(), capture_output=True)
 
     decoder_command = "/home/andre/Documents/parallel-jplm/bin/jpl-decoder-bin -i .tmp/bla.jpl -o .tmp/bla/"
