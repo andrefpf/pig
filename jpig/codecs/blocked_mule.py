@@ -5,6 +5,7 @@ from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
 from jpig.entropy import MuleDecoder, MuleEncoder
+from jpig.metrics.rate_distortion import RD
 from jpig.utils.block_utils import split_blocks_equal_size
 
 
@@ -21,6 +22,7 @@ class BlockedMule:
 
         bitstream = bitarray()
         block_encoded_sizes = []
+        self.estimated_rd = RD()
 
         shifted = data.astype(np.int32) - (1 << (bitdepth - 1))
         for block in split_blocks_equal_size(shifted, block_size):
@@ -32,6 +34,7 @@ class BlockedMule:
                 lagrangian,
                 upper_bitplane=max_bitplane,
             )
+            self.estimated_rd += mule_encoder.estimated_rd
             bitstream += block_bitstream
             block_encoded_sizes.append(len(block_bitstream) // 8)
 
