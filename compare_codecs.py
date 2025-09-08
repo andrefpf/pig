@@ -65,10 +65,10 @@ def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
 
     encoder_command = f"/home/andre/Documents/parallel-jplm/bin/jpl-encoder-bin -i {path} -o .tmp/bla.jpl -c pleno_config.json -errorest"
     encoder_command += f" --lambda {lagrangian} --view_width {624} --view_height {432} --threads 4"
-    subprocess.run(encoder_command.split())
+    subprocess.run(encoder_command.split(), capture_output=True)
 
     decoder_command = "/home/andre/Documents/parallel-jplm/bin/jpl-decoder-bin -i .tmp/bla.jpl -o .tmp/bla/"
-    subprocess.run(decoder_command.split())
+    subprocess.run(decoder_command.split(), capture_output=True)
 
     
     handler = PGXHandler()
@@ -89,6 +89,7 @@ def test_mule(path: str, lagrangian: float) -> RD:
         img,
         lagrangian=lagrangian,
         block_size=16,
+        bitdepth=img.bitdepth,
     )
 
     codec_1 = BlockedMule()
