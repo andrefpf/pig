@@ -270,6 +270,4 @@ class MuleEncoder:
 
     @staticmethod
     def is_bitplane_zero(block, bitplane):
-        if bitplane == 0:
-            return True
         return not np.any(np.abs(block) & 1 << (bitplane - 1))
