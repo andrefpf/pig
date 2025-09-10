@@ -55,7 +55,7 @@ class MuleEncoder:
         return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: Sequence[str], block: np.ndarray, upper_bitplane: int):
-        if upper_bitplane < self.lower_bitplane or upper_bitplane == 0:
+        if upper_bitplane < self.lower_bitplane or upper_bitplane <= 0:
             return
 
         if block.size == 1:
@@ -132,7 +132,7 @@ class MuleEncoder:
         block: np.ndarray,
         upper_bitplane: int,
     ) -> tuple[str, RD]:
-        if upper_bitplane < self.lower_bitplane or upper_bitplane == 0:
+        if upper_bitplane < self.lower_bitplane or upper_bitplane <= 0:
             rd = RD(
                 rate=0,
                 distortion=energy(block),
