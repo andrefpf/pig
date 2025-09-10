@@ -42,6 +42,7 @@ class MuleOptimizer:
                 best_cost = rd.cost(self.lagrangian)
                 lower_bitplane = i
 
+        self.prob_handler.clear()
         return lower_bitplane
 
     def optimize_tree(
@@ -101,12 +102,14 @@ class MuleOptimizer:
         upper_bp: int,
         signed: bool,
     ) -> RD:
-        mask = (1 << lower_bp) - 1
-        masked_value = np.abs(value) & mask
+        lower_mask = (1 << lower_bp) - 1
+        upper_mask = ~lower_mask
+        rd = RD(
+            rate=0,
+            distortion=energy(np.absolute(value) & lower_mask),
+        )
 
-        rd = RD()
-        rd.distortion += energy(masked_value)
-
+        masked_value = np.abs(value) & upper_mask
         for i in range(lower_bp, upper_bp):
             bit = ((1 << i) & masked_value) != 0
             model = self.prob_handler.int_model(i)
@@ -124,23 +127,19 @@ class MuleOptimizer:
         lower_bp: int,
         upper_bp: int,
     ) -> tuple[Flags, RD]:
-        new_bp = self.find_max_bitplane(block)
-        n_flags = upper_bp - new_bp
-
-        flags = deque("L" * n_flags)
+        flags = deque("L")
         rd = RD()
 
         model_0 = self.prob_handler.flag_model(upper_bp, 0)
         model_1 = self.prob_handler.flag_model(upper_bp, 1)
 
-        for _ in range(n_flags):
-            rd.rate += model_0.add_and_estimate_bit(0)
-            rd.rate += model_1.add_and_estimate_bit(0)
+        rd.rate += model_0.add_and_estimate_bit(0)
+        rd.rate += model_1.add_and_estimate_bit(0)
 
         current_flags, current_rd = self.optimize_tree(
             block,
             lower_bp,
-            new_bp,
+            upper_bp - 1,
         )
 
         flags += current_flags
