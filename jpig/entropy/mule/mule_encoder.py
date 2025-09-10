@@ -56,6 +56,7 @@ class MuleEncoder:
         self.cabac.start(result=self.bitstream)
         self.encode_int(self.lower_bitplane, 0, 5, signed=False)
         self.apply_encoding(self.flags.copy(), block, self.upper_bitplane)
+
         return self.cabac.end(fill_to_byte=True)
 
     def apply_encoding(self, flags: Flags, block: np.ndarray, upper_bitplane: int):
@@ -106,8 +107,10 @@ class MuleEncoder:
         absolute = np.abs(value)
         for i in range(lower_bitplane, upper_bitplane):
             bit = ((1 << i) & absolute) != 0
-            self.cabac.encode_bit(bit, model=self.prob_handler.int_model(i))
+            model = self.prob_handler.int_model(i)
+            self.cabac.encode_bit(bit, model=model)
 
         mask = (1 << lower_bitplane) - 1
         if signed and (absolute & ~mask) != 0:
-            self.cabac.encode_bit(value < 0, model=self.prob_handler.signal_model())
+            model = self.prob_handler.signal_model()
+            self.cabac.encode_bit(value < 0, model=model)

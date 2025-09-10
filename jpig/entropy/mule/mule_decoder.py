@@ -4,16 +4,15 @@ from bitarray import bitarray
 from jpig.entropy import CabacDecoder, FrequentistPM
 from jpig.utils.block_utils import split_blocks_in_half
 
+from .mule_probability_handler import MuleProbabilityHandler
+
 
 class MuleDecoder:
     def __init__(self):
         self.lower_bitplane = 0
         self.upper_bitplane = 32
 
-        self.signals_probability_model = FrequentistPM()
-        self.flag_probability_models = [FrequentistPM() for _ in range(self.upper_bitplane * 2)]
-        self.bitplane_probability_models = [FrequentistPM() for _ in range(self.upper_bitplane)]
-
+        self.prob_handler = MuleProbabilityHandler()
         self.bitstream = bitarray()
         self.cabac = CabacDecoder()
 
@@ -64,25 +63,25 @@ class MuleDecoder:
         value = 0
 
         for i in range(lower_bitplane, upper_bitplane):
-            bit = self.cabac.decode_bit(model=self.bitplane_probability_models[i])
+            bit = self.cabac.decode_bit(model=self.prob_handler.int_model(i))
             value |= bit << i
 
         if signed and value != 0:
-            signal = self.cabac.decode_bit(model=self.signals_probability_model)
+            signal = self.cabac.decode_bit(model=self.prob_handler.signal_model())
             if signal:
                 value = -value
 
         return value
 
     def _decode_flag(self, bitplane: int):
-        first_bit_model = self.flag_probability_models[bitplane * 2 + 0]
-        first_bit = self.cabac.decode_bit(model=first_bit_model)
+        model_0 = self.prob_handler.flag_model(bitplane, 0)
+        model_1 = self.prob_handler.flag_model(bitplane, 1)
+        first_bit = self.cabac.decode_bit(model=model_0)
 
         if first_bit:
             return "Z"  # 1
         else:
-            second_bit_model = self.flag_probability_models[bitplane * 2 + 1]
-            second_bit = self.cabac.decode_bit(model=second_bit_model)
+            second_bit = self.cabac.decode_bit(model=model_1)
 
             if second_bit:
                 return "S"  # 01
