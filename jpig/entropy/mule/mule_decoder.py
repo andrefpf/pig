@@ -22,10 +22,10 @@ class MuleDecoder:
         bitstream: bitarray,
         shape: tuple[int],
         *,
-        upper_bitplane: int = 32,
+        upper_bitplane: int,
     ) -> np.ndarray:
         self.upper_bitplane = upper_bitplane
-        block = np.zeros(shape)
+        block = np.zeros(shape, dtype=np.int32)
 
         self.cabac.start(bitstream)
         self.lower_bitplane = self.decode_int(0, 5, signed=False)
@@ -34,7 +34,7 @@ class MuleDecoder:
         return block
 
     def apply_decoding(self, block: np.ndarray, bitplane: int = 32):
-        if bitplane < self.lower_bitplane or bitplane == 0:
+        if bitplane < self.lower_bitplane or bitplane <= 0:
             return
 
         if block.size == 1:
