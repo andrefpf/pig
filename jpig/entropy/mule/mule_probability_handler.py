@@ -11,9 +11,12 @@ class MuleProbabilityHandler:
         return self.signals_probability_model
 
     def int_model(self, bitplane: int) -> FrequentistPM:
+        assert 0 <= bitplane < 32
         return self.integer_probability_models[bitplane]
 
     def flag_model(self, bitplane: int, position: int) -> FrequentistPM:
+        assert position in (0, 1)
+        assert 0 <= bitplane < 32
         return self.flag_probability_models[bitplane * 2 + position]
 
     def push(self):
