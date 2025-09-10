@@ -1,3 +1,5 @@
+from collections import deque
+
 import numpy as np
 
 from jpig.entropy import MuleDecoder, MuleEncoder
@@ -18,20 +20,17 @@ def test_mule_easy():
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
-    max_bitplane = MuleEncoder.find_max_bitplane(original)
     encoded = encoder.encode(
         original,
         0,
-        lower_bitplane=0,
-        upper_bitplane=max_bitplane,
     )
     decoded = decoder.decode(
         encoded,
         original.shape,
-        upper_bitplane=max_bitplane,
+        upper_bitplane=encoder.upper_bitplane,
     )
 
-    assert encoder.flags == "SSLLLSZLLLS"
+    assert encoder.flags == deque("SSLLLSZLLLS")
     assert np.allclose(original, decoded)
 
 
