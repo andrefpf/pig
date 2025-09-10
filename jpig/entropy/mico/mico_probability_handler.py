@@ -19,10 +19,10 @@ class MicoProbabilityHandler:
 
     def split_model(self) -> FrequentistPM:
         return self.split_flags_model
-    
+
     def block_model(self) -> FrequentistPM:
         return self.block_flags_model
-    
+
     def unit_model(self) -> FrequentistPM:
         return self.unit_flags_model
 
@@ -41,6 +41,8 @@ class MicoProbabilityHandler:
     def _all_models(self):
         return (
             self.signals_probability_model,
-            *self.flag_probability_models,
             *self.integer_probability_models,
+            self.unit_flags_model,
+            self.split_flags_model,
+            self.block_flags_model,
         )
