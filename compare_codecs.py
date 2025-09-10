@@ -194,6 +194,6 @@ if __name__ == "__main__":
         jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
         jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
         mule_curve=find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians_mule),
-        mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
-        mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
+        # mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
+        # mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
     )
