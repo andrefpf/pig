@@ -1,4 +1,5 @@
 from collections import deque
+from functools import cache
 from typing import Sequence
 
 import numpy as np
@@ -19,6 +20,7 @@ class MicoOptimizer:
 
         self._block_levels = MicoOptimizer.get_block_levels(self.block)
         self._level_bitplane = MicoOptimizer.find_bitplane_per_level(self.block)
+        self._lower_bitplane = self.optimize_lower_bitplane()
 
     def optimize_lower_bitplane(self) -> int:
         lower_bitplane = 0
@@ -49,15 +51,11 @@ class MicoOptimizer:
         self.prob_handler.clear()
         return lower_bitplane
 
-    def optimize_tree(
-        self,
-        block_position: tuple[slice, ...],
-        lower_bp: int,
-    ) -> tuple[Flags, RD]:
+    def optimize_tree(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         sub_block = self.block[block_position]
 
         if sub_block.size == 1:
-            return self._estimate_unit_block(block_position, lower_bp)
+            return self._estimate_unit_block(block_position)
 
         # if np.all(sub_block == 0):
         #     return self._estimate_empty(block_position)
@@ -70,11 +68,11 @@ class MicoOptimizer:
         self.prob_handler.pop()
 
         self.prob_handler.push()
-        _, full_rd = self._estimate_full(block_position, lower_bp)
+        _, full_rd = self._estimate_full(block_position)
         self.prob_handler.pop()
 
         self.prob_handler.push()
-        split_flags, split_rd = self._estimate_split(block_position, lower_bp)
+        split_flags, split_rd = self._estimate_split(block_position)
 
         split_cost = split_rd.cost(self.lagrangian)
         empty_cost = empty_rd.cost(self.lagrangian)
@@ -88,27 +86,24 @@ class MicoOptimizer:
             return self._estimate_empty(block_position)
 
         else:
-            return self._estimate_full(block_position, lower_bp)
+            return self._estimate_full(block_position)
 
-    def _estimate_split(self, block_position: tuple[slice, ...], lower_bp: int) -> tuple[Flags, RD]:
+    def _estimate_split(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         rd = RD()
         rd.rate += self.prob_handler.split_model().add_and_estimate_bit(0)
 
         flags = deque("S")
         for sub_pos in split_shape_in_half(block_position):
-            current_flags, current_rd = self.optimize_tree(sub_pos, lower_bp)
+            current_flags, current_rd = self.optimize_tree(sub_pos)
             flags += current_flags
             rd += current_rd
 
         return flags, rd
 
-    def _estimate_unit_block(
-        self,
-        block_position: tuple[slice, ...],
-        lower_bp: int,
-    ) -> tuple[Flags, RD]:
+    def _estimate_unit_block(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         sub_block = self.block[block_position]
         value = sub_block.flatten()[0]
+        lower_bp = self._lower_bitplane
         upper_bp = self._block_levels[block_position].flatten()[0]
 
         lower_mask = (1 << lower_bp) - 1
@@ -130,11 +125,11 @@ class MicoOptimizer:
     def _estimate_full(
         self,
         block_position: tuple[slice, ...],
-        lower_bp: int,
     ) -> tuple[Flags, RD]:
         flags = deque("F")
         sub_block = self.block[block_position]
         sub_levels = self._block_levels[block_position]
+        lower_bp = self._lower_bitplane
 
         rd = RD()
         rd.rate += self.prob_handler.split_model().add_and_estimate_bit(0)
@@ -192,11 +187,8 @@ class MicoOptimizer:
         2, 2, 2, 3, 4
         3, 3, 3, 3, 4
         """
-        blocks_level = np.zeros_like(block, dtype=np.int32)
-        for position, _ in np.ndenumerate(block):
-            level = max(position)
-            blocks_level[position] = level
-        return blocks_level
+        print(block.shape)
+        return MicoOptimizer.get_shape_levels(block.shape)
 
     @staticmethod
     def find_bitplane_per_level(block: np.ndarray) -> Sequence[int]:
@@ -225,3 +217,27 @@ class MicoOptimizer:
         """
         max_abs = np.max(np.abs(block))
         return int(max_abs).bit_length()
+
+    @staticmethod
+    def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
+        """
+        The levels of a (4, 5) block are organized as follows:
+
+        0, 1, 2, 3, 4
+        1, 1, 2, 3, 4
+        2, 2, 2, 3, 4
+        3, 3, 3, 3, 4
+        """
+
+        # I know it is dumb to cache and return a copy,
+        # but python iterations are slow, numpy is fast.
+        return _cached_shape_levels(shape).copy()
+
+
+@cache
+def _cached_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
+    blocks_level = np.zeros(shape, dtype=np.int32)
+    for position in np.ndindex(*shape):
+        level = max(position)
+        blocks_level[position] = level
+    return blocks_level
