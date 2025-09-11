@@ -58,8 +58,9 @@ class MicoEncoder:
         for size in reversed(self.level_bitplanes):
             delta = size - last_size
             for _ in range(delta):
-                self.cabac.encode_bit(1, model=self.bitplane_sizes_model)
-            self.cabac.encode_bit(0, model=self.bitplane_sizes_model)
+                self.cabac.encode_bit(1, model=self.prob_handler.bitplanes_model())
+            self.cabac.encode_bit(0, model=self.prob_handler.bitplanes_model())
+            last_size = size
         self.prob_handler.clear()
 
     def apply_encoding(self, flags: Flags, block_position: tuple[slice, ...]):
@@ -67,39 +68,47 @@ class MicoEncoder:
         sub_levels = self.block_levels[block_position]
         upper_bitplanes = self.level_bitplanes[sub_levels]
 
-        if np.all(upper_bitplanes < self.lower_bitplane) or np.all(upper_bitplanes <= 0):
+        if np.all(upper_bitplanes < self.lower_bitplane):
             return
 
-        if sub_block.size == 1:
-            return self.encode_unit_block(block_position)
+        if np.all(upper_bitplanes <= 0):
+            return
 
         flag = flags.popleft()
         model_split = self.prob_handler.split_model()
         model_block = self.prob_handler.block_model()
 
-        if flag == "E":
-            self.cabac.encode_bit(0, model=model_split)
-            self.cabac.encode_bit(0, model=model_block)
-
-        elif flag == "F":
-            for upper_bitplane, value in zip(upper_bitplanes.flatten(), sub_block.flatten()):
-                upper_bitplane = self.get_bitplane(block_position)
-                self.encode_int(value, self.lower_bitplane, upper_bitplane, signed=True)
-
-        elif flag == "S":
+        if flag == "S":
             self.cabac.encode_bit(1, model=model_split)
             for sub_pos in split_shape_in_half(block_position):
                 self.apply_encoding(flags, sub_pos)
 
-    def encode_unit_block(self, block_position: tuple[slice, ...]):
-        value = self.block[block_position].flatten()[0]
-        level = self.block_levels[block_position].flatten()[0]
-        upper_bitplane = self.level_bitplanes[level]
+        elif flag == "E":
+            self.cabac.encode_bit(0, model=model_split)
+            self.cabac.encode_bit(0, model=model_block)
+            return
 
-        mask = ALL_ONES << self.lower_bitplane
-        model = self.prob_handler.unit_model()
-        self.cabac.encode_bit((value & mask) != 0, model=model)
-        self.encode_int(value, self.lower_bitplane, upper_bitplane, signed=True)
+        elif flag == "F":
+            self.cabac.encode_bit(0, model=model_split)
+            self.cabac.encode_bit(1, model=model_block)
+            for i, upper_bitplane in np.ndenumerate(upper_bitplanes):
+                value = sub_block[i].flatten()[0]
+                self.encode_int(value, self.lower_bitplane, upper_bitplane, signed=True)
+
+        elif flag == "z":
+            assert sub_block.size == 1
+            model = self.prob_handler.unit_model()
+            self.cabac.encode_bit(0, model=model)
+            return
+
+        elif flag == "v":
+            assert sub_block.size == 1
+            value = sub_block.flatten()[0]
+            upper_bitplane = upper_bitplanes.flatten()[0]
+
+            model = self.prob_handler.unit_model()
+            self.cabac.encode_bit(1, model=model)
+            self.encode_int(value, self.lower_bitplane, upper_bitplane, signed=True)
 
     def encode_int(
         self,

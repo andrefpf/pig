@@ -123,6 +123,7 @@ class MicoOptimizer:
         quantized_value = np.abs(value) & upper_mask
         model = self.prob_handler.unit_model()
 
+        flags = deque("v") if (quantized_value != 0) else deque("z")
         rd = RD()
         rd.rate += model.add_and_estimate_bit(quantized_value != 0)
         rd += self._estimate_integer(
@@ -132,7 +133,7 @@ class MicoOptimizer:
             signed=True,
         )
 
-        return (deque(), rd)
+        return (flags, rd)
 
     def _estimate_full(
         self,
@@ -190,18 +191,6 @@ class MicoOptimizer:
         return rd
 
     @staticmethod
-    def get_block_levels(block: np.ndarray) -> np.ndarray:
-        """
-        The levels of a (4, 5) block are organized as follows:
-
-        0, 1, 2, 3, 4
-        1, 1, 2, 3, 4
-        2, 2, 2, 3, 4
-        3, 3, 3, 3, 4
-        """
-        return MicoOptimizer.get_shape_levels(block.shape)
-
-    @staticmethod
     def find_bitplane_per_level(block: np.ndarray) -> np.ndarray:
         """
         Find the maximum bitplane by level of the block.
@@ -228,6 +217,18 @@ class MicoOptimizer:
         """
         max_abs = np.max(np.abs(block))
         return int(max_abs).bit_length()
+
+    @staticmethod
+    def get_block_levels(block: np.ndarray) -> np.ndarray:
+        """
+        The levels of a (4, 5) block are organized as follows:
+
+        0, 1, 2, 3, 4
+        1, 1, 2, 3, 4
+        2, 2, 2, 3, 4
+        3, 3, 3, 3, 4
+        """
+        return MicoOptimizer.get_shape_levels(block.shape)
 
     @staticmethod
     def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
