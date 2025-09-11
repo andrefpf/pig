@@ -37,7 +37,7 @@ class MuleDecoder:
             return
 
         if block.size == 1:
-            block[:] = self.decode_int(self.lower_bitplane, bitplane)
+            block[:] = self.decode_int(self.lower_bitplane, bitplane, signed=True)
             return
 
         flag = self._decode_flag(bitplane)
@@ -58,7 +58,8 @@ class MuleDecoder:
         self,
         lower_bitplane: int,
         upper_bitplane: int,
-        signed: bool = True,
+        *,
+        signed: bool,
     ) -> int:
         value = 0
 
