@@ -212,13 +212,13 @@ class MicoOptimizer:
         bitplane_sizes = []
 
         for i in range(max(block.shape)):
-            slices = tuple(slice(0, min(i, dim)) for dim in range(block.ndim))
+            slices = tuple(slice(0, i) for _ in range(block.ndim))
             tmp_block[*slices] = 0
 
             bp = MicoOptimizer.find_max_bitplane(tmp_block)
             bitplane_sizes.append(bp)
 
-        return np.array(bitplane_sizes, dtype=int)
+        return np.array(bitplane_sizes, dtype=np.int32)
 
     @staticmethod
     def find_max_bitplane(block: np.ndarray):
