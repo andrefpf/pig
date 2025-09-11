@@ -100,6 +100,7 @@ class MuleOptimizer:
         value: int,
         lower_bp: int,
         upper_bp: int,
+        *,
         signed: bool,
     ) -> RD:
         lower_mask = (1 << lower_bp) - 1
