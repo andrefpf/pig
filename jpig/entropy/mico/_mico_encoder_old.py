@@ -6,7 +6,7 @@ from jpig.metrics import RD, energy
 from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 
-class MicoEncoder:
+class MicoEncoderOld:
     """
     Multidimensional Image COdec - Encoder
     """

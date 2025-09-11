@@ -2,7 +2,7 @@ import numpy as np
 from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
-from jpig.entropy import MicoDecoder, MicoEncoder
+from jpig.entropy import MicoDecoder, MicoEncoderOld
 
 
 class WholeImageMico:
@@ -10,7 +10,7 @@ class WholeImageMico:
         transformed: np.ndarray = dctn(data, norm="ortho")
         transformed = transformed.round().astype(int)
 
-        mico_encoder = MicoEncoder()
+        mico_encoder = MicoEncoderOld()
 
         header = bitarray()
         header.extend(f"{data.ndim:08b}")

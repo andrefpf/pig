@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from jpig.entropy import MicoDecoder, MicoEncoder
+from jpig.entropy import MicoDecoder, MicoEncoderOld
 
 
 def test_mico_bitplanes():
@@ -13,7 +13,7 @@ def test_mico_bitplanes():
             [0, 0, 3, -1],
         ]
     )  # fmt: skip
-    encoder = MicoEncoder()
+    encoder = MicoEncoderOld()
     encoder.block = original
     assert encoder._calculate_bitplane_sizes() == [5, 4, 2, 2]
 
@@ -28,7 +28,7 @@ def test_mico_easy():
         ]
     )  # fmt: skip
 
-    encoder = MicoEncoder()
+    encoder = MicoEncoderOld()
     decoder = MicoDecoder()
 
     # Encoding with lagrangian equals to zero
@@ -51,7 +51,7 @@ def test_mico_easy():
 def test_mico_random():
     original = np.random.randint(0, 255, (9, 10, 8, 5, 2))
 
-    encoder = MicoEncoder()
+    encoder = MicoEncoderOld()
     decoder = MicoDecoder()
 
     # Encoding with lagrangian equals to zero

@@ -4,7 +4,7 @@ import numpy as np
 from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
-from jpig.entropy import MicoDecoder, MicoEncoder
+from jpig.entropy import MicoDecoder, MicoEncoderOld
 from jpig.utils.block_utils import split_blocks_equal_size
 
 
@@ -17,7 +17,7 @@ class BlockedMico:
             transformed_block: np.ndarray = dctn(block, norm="ortho")
             transformed_block = transformed_block.round().astype(int)
 
-            mico_encoder = MicoEncoder()
+            mico_encoder = MicoEncoderOld()
             block_bitstream = mico_encoder.encode(
                 transformed_block,
                 lagrangian,
