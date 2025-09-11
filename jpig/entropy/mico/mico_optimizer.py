@@ -2,11 +2,9 @@ from collections import deque
 from typing import Sequence
 
 import numpy as np
-from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder, FrequentistPM
 from jpig.metrics import RD, energy
-from jpig.utils.block_utils import split_blocks_in_half
+from jpig.utils.block_utils import split_shape_in_half
 
 from .mico_probability_handler import MicoProbabilityHandler
 
@@ -40,7 +38,7 @@ class MicoOptimizer:
             for bit in bits_to_encode:
                 accumulated_rate += model.add_and_estimate_bit(bit)
 
-            sign_rate = np.sum(non_zeroed)
+            sign_rate = np.sum(non_zeroed, dtype=np.float64)
             total_rate = accumulated_rate + sign_rate
             rd = RD(total_rate, energy(magnitudes & lower_mask))
 
@@ -53,10 +51,81 @@ class MicoOptimizer:
 
     def optimize_tree(
         self,
-        block: np.ndarray,
+        block_position: tuple[slice, ...],
         lower_bp: int,
     ) -> tuple[Flags, RD]:
-        pass
+        sub_block = self.block[block_position]
+
+        if sub_block.size == 1:
+            return self._estimate_unit_block(block_position, lower_bp)
+
+        # if np.all(sub_block == 0):
+        #     return self._estimate_empty(block_position)
+
+        # if np.all(sub_block != 0):
+        #     return self._estimate_full(block_position, lower_bp)
+
+        self.prob_handler.push()
+        _, empty_rd = self._estimate_empty(block_position)
+        self.prob_handler.pop()
+
+        self.prob_handler.push()
+        _, full_rd = self._estimate_full(block_position, lower_bp)
+        self.prob_handler.pop()
+
+        self.prob_handler.push()
+        split_flags, split_rd = self._estimate_split(block_position, lower_bp)
+
+        split_cost = split_rd.cost(self.lagrangian)
+        empty_cost = empty_rd.cost(self.lagrangian)
+        full_cost = full_rd.cost(self.lagrangian)
+
+        if split_cost < empty_cost and split_cost < full_cost:
+            return split_flags, split_rd
+
+        elif empty_cost < full_cost:
+            self.prob_handler.pop()
+            return self._estimate_empty(block_position)
+
+        else:
+            return self._estimate_full(block_position, lower_bp)
+
+    def _estimate_split(self, block_position: tuple[slice, ...], lower_bp: int) -> tuple[Flags, RD]:
+        rd = RD()
+        rd.rate += self.prob_handler.split_model().add_and_estimate_bit(0)
+
+        flags = deque("S")
+        for sub_pos in split_shape_in_half(block_position):
+            current_flags, current_rd = self.optimize_tree(sub_pos, lower_bp)
+            flags += current_flags
+            rd += current_rd
+
+        return flags, rd
+
+    def _estimate_unit_block(
+        self,
+        block_position: tuple[slice, ...],
+        lower_bp: int,
+    ) -> tuple[Flags, RD]:
+        sub_block = self.block[block_position]
+        value = sub_block.flatten()[0]
+        upper_bp = self._block_levels[block_position].flatten()[0]
+
+        lower_mask = (1 << lower_bp) - 1
+        upper_mask = ~lower_mask
+        quantized_value = np.abs(value) & upper_mask
+        model = self.prob_handler.unit_model()
+
+        rd = RD()
+        rd.rate += model.add_and_estimate_bit(quantized_value != 0)
+        rd += self._estimate_integer(
+            value,
+            lower_bp,
+            upper_bp,
+            signed=True,
+        )
+
+        return (deque(), rd)
 
     def _estimate_full(
         self,
@@ -97,18 +166,17 @@ class MicoOptimizer:
     ) -> RD:
         lower_mask = (1 << lower_bp) - 1
         upper_mask = ~lower_mask
-        rd = RD(
-            rate=0,
-            distortion=energy(np.abs(value) & lower_mask),
-        )
 
-        masked_value = np.abs(value) & upper_mask
+        rd = RD()
+        rd.distortion = energy(np.abs(value) & lower_mask)
+
+        quantized_value = np.abs(value) & upper_mask
         for i in range(lower_bp, upper_bp):
-            bit = ((1 << i) & masked_value) != 0
+            bit = ((1 << i) & quantized_value) != 0
             model = self.prob_handler.int_model(i)
             rd.rate += model.add_and_estimate_bit(bit)
 
-        if signed and (masked_value != 0):
+        if signed and (quantized_value != 0):
             model = self.prob_handler.signal_model()
             rd.rate += model.add_and_estimate_bit(value < 0)
 

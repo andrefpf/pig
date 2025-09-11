@@ -48,6 +48,12 @@ class MicoProbabilityHandler:
             rate += model.total_estimated_rate()
         return rate
 
+    def copy(self):
+        other = MicoProbabilityHandler()
+        for model, other_model in zip(self._all_models(), other._all_models()):
+            other_model.set_values(model.get_values())
+        return other
+
     def _all_models(self) -> tuple[FrequentistPM, ...]:
         return (
             self._bitplane_sizes_model,

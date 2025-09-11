@@ -16,4 +16,4 @@ def psnr(baseline: np.ndarray, distorted: np.ndarray, n_bits: int) -> float:
 
 
 def energy(block: np.ndarray) -> float:
-    return np.sum(block.astype(np.float64) ** 2)
+    return np.sum(block.astype(np.float64) ** 2, dtype=np.float64)

@@ -31,6 +31,12 @@ class MuleProbabilityHandler:
         for model in self._all_models():
             model.clear()
 
+    def copy(self):
+        other = MuleProbabilityHandler()
+        for model, other_model in zip(self._all_models(), other._all_models()):
+            other_model.set_values(model.get_values())
+        return other
+
     def _all_models(self):
         return (
             self._signals_probability_model,
