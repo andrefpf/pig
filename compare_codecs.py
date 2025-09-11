@@ -144,8 +144,8 @@ def test_mico_quantized(path: str, quality: int) -> RD:
 
 
 if __name__ == "__main__":
-    path = Path("datasets/images/bikes_cropped.pgm").expanduser()
-    path_pleno = Path("datasets/images/Bikes_cropped/").expanduser()
+    path = Path("datasets/images/bikes_128x128.pgm").expanduser()
+    path_pleno = Path("datasets/images/Bikes_128x128/").expanduser()
 
     parameters = [
         (10,),
@@ -168,24 +168,24 @@ if __name__ == "__main__":
     ]
 
     lagrangians_mule = [
-        (10,),
         (100,),
         (500,),
-        (1000,),
+        (1_000,),
+        (10_000,),
     ]
 
     lagrangians_mico = [
-        (10,),
         (100,),
         (500,),
-        (1000,),
+        (1_000,),
+        (10_000,),
     ]
 
     lagrangians_pleno = [
-        (10,),
         (100,),
         (500,),
-        (1000,),
+        (1_000,),
+        (10_000,),
     ]
 
     plot_rd_curves(
@@ -195,5 +195,5 @@ if __name__ == "__main__":
         jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
         mule_curve=find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians_mule),
         # mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
-        # mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
+        mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
     )
