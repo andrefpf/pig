@@ -59,7 +59,7 @@ class MicoOptimizer:
         sub_levels = self.block_levels[block_position]
         upper_bitplanes = self.level_bitplanes[sub_levels]
 
-        if np.all(upper_bitplanes < self.lower_bitplane) or np.all(upper_bitplanes <= 0):
+        if np.all(upper_bitplanes <= self.lower_bitplane) or np.all(upper_bitplanes <= 0):
             rd = RD(
                 rate=0,
                 distortion=energy(sub_block),

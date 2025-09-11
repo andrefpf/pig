@@ -42,7 +42,7 @@ class MicoDecoder:
         sub_levels = self.block_levels[block_position]
         upper_bitplanes = self.level_bitplanes[sub_levels]
 
-        if np.all(upper_bitplanes < self.lower_bitplane):
+        if np.all(upper_bitplanes <= self.lower_bitplane):
             return
 
         if np.all(upper_bitplanes <= 0):

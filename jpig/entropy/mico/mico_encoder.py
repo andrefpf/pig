@@ -56,11 +56,11 @@ class MicoEncoder:
         last_size = self.lower_bitplane
         self.encode_int(self.lower_bitplane, 0, 5, signed=False)
         for size in reversed(self.level_bitplanes):
-            delta = size - last_size
+            delta = max(size - last_size, 0)
             for _ in range(delta):
                 self.cabac.encode_bit(1, model=self.prob_handler.bitplanes_model())
             self.cabac.encode_bit(0, model=self.prob_handler.bitplanes_model())
-            last_size = size
+            last_size += delta
         self.prob_handler.clear()
 
     def apply_encoding(self, flags: Flags, block_position: tuple[slice, ...]):
@@ -68,7 +68,7 @@ class MicoEncoder:
         sub_levels = self.block_levels[block_position]
         upper_bitplanes = self.level_bitplanes[sub_levels]
 
-        if np.all(upper_bitplanes < self.lower_bitplane):
+        if np.all(upper_bitplanes <= self.lower_bitplane):
             return
 
         if np.all(upper_bitplanes <= 0):
