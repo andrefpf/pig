@@ -34,10 +34,8 @@ class BlockedMico:
             bitstream += block_bitstream
             block_encoded_sizes.append(len(block_bitstream) // 8)
 
-        # shape_bits = self._max_bits(data.shape)
-        # block_bits = self._max_bits(block_encoded_sizes)
-        shape_bits = 32
-        block_bits = 32
+        shape_bits = self._max_bits(data.shape)
+        block_bits = self._max_bits(block_encoded_sizes)
 
         header = bitarray()
         self._add_bits(header, 8, data.ndim)
