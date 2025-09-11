@@ -17,7 +17,6 @@ class BlockedMule:
         block_size: int = 16,
         bitdepth: int = 8,
     ) -> bitarray:
-
         max_bitplane = data.ndim * (bitdepth - 1)
 
         bitstream = bitarray()
@@ -38,39 +37,45 @@ class BlockedMule:
             bitstream += block_bitstream
             block_encoded_sizes.append(len(block_bitstream) // 8)
 
+        shape_bits = self._max_bits(data.shape)
+        block_bits = self._max_bits(block_encoded_sizes)
+
         header = bitarray()
-        header.extend(f"{data.ndim:08b}")
+        self._add_bits(header, 8, data.ndim)
+        self._add_bits(header, 8, shape_bits)
         for size in data.shape:
-            header.extend(f"{size:032b}")
+            self._add_bits(header, shape_bits, size)
 
-        header.extend(f"{block_size:016b}")
-        header.extend(f"{len(block_encoded_sizes):032b}")
+        self._add_bits(header, 16, block_size)
+        self._add_bits(header, 32, len(block_encoded_sizes))
+        self._add_bits(header, 8, block_bits)
         for size in block_encoded_sizes:
-            header.extend(f"{size:032b}")
-        
-        header.extend(f"{bitdepth:08b}")
-        header.extend(f"{max_bitplane:08b}")
+            self._add_bits(header, block_bits, size)
 
+        self._add_bits(header, 8, bitdepth)
+        self._add_bits(header, 8, max_bitplane)
         return header + bitstream
 
     def decode(self, codestream: bitarray) -> np.ndarray:
         codestream = codestream.copy()
-        ndim = self._consume_bytes(codestream, 8)
+        ndim = self._consume_bits(codestream, 8)
+        shape_bits = self._consume_bits(codestream, 8)
         shape = list()
         for _ in range(ndim):
-            size = self._consume_bytes(codestream, 32)
+            size = self._consume_bits(codestream, shape_bits)
             shape.append(size)
 
-        block_size = self._consume_bytes(codestream, 16)
-        number_of_blocks = self._consume_bytes(codestream, 32)
+        block_size = self._consume_bits(codestream, 16)
+        number_of_blocks = self._consume_bits(codestream, 32)
+        block_bits = self._consume_bits(codestream, 8)
 
         block_encoded_sizes = []
         for _ in range(number_of_blocks):
-            size = self._consume_bytes(codestream, 32)
+            size = self._consume_bits(codestream, block_bits)
             block_encoded_sizes.append(size)
 
-        bitdepth = self._consume_bytes(codestream, 8)
-        max_bitplane = self._consume_bytes(codestream, 8)
+        bitdepth = self._consume_bits(codestream, 8)
+        max_bitplane = self._consume_bits(codestream, 8)
 
         last_pos = 0
         bitstreams: list[bitarray] = list()
@@ -92,10 +97,21 @@ class BlockedMule:
             decoded_block = decoded_block.round().astype(int)
             block[:] = decoded_block
 
-        decoded += (1 << (bitdepth - 1))
+        decoded += 1 << (bitdepth - 1)
         return decoded
 
-    def _consume_bytes(self, codestream: bitarray, number_of_bytes: int) -> bitarray:
-        value = int.from_bytes(codestream[:number_of_bytes].tobytes())
-        codestream[:] = codestream[number_of_bytes:]
+    def _add_bits(self, codestram: bitarray, number_of_bits: int, value: int) -> None:
+        bits = f"{value:0{number_of_bits}b}"
+        codestram.extend(bits)
+
+    def _consume_bits(self, codestream: bitarray, number_of_bits: int) -> int:
+        section = codestream[:number_of_bits]
+        left_fill = bitarray(section.padbits * "0")
+        section = left_fill + section
+
+        value = int.from_bytes(section.tobytes())
+        codestream[:] = codestream[number_of_bits:]
         return value
+
+    def _max_bits(self, sequence) -> int:
+        return int(max(sequence)).bit_length()
