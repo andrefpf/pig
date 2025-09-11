@@ -6,6 +6,7 @@ from .cabac.cabac_decoder import CabacDecoder
 from .mule.mule_encoder import MuleEncoder
 from .mule.mule_decoder import MuleDecoder
 from .mico._mico_encoder_old import MicoEncoderOld
+from .mico.mico_encoder import MicoEncoder
 from .mico.mico_decoder import MicoDecoder
 
 
@@ -17,5 +18,6 @@ __all__ = [
     "FrequentistPM",
     "ExponentialSmoothingPM",
     "MicoEncoderOld",
+    "MicoEncoder",
     "MicoDecoder",
 ]
