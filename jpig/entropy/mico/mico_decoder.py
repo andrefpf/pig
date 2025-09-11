@@ -4,6 +4,8 @@ from bitarray import bitarray
 from jpig.entropy import CabacDecoder, FrequentistPM
 from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
+from .mico_probability_handler import MicoProbabilityHandler
+
 
 class MicoDecoder:
     """
@@ -14,14 +16,7 @@ class MicoDecoder:
         self.upper_bitplane = 32
         self.bitplane_sizes = []
 
-        self.split_flags_model = FrequentistPM()
-        self.unit_flags_model = FrequentistPM()
-        self.block_flags_model = FrequentistPM()
-
-        self.signals_model = FrequentistPM()
-        self.bitplane_models = [FrequentistPM() for _ in range(32)]
-        self.bitplane_sizes_model = FrequentistPM()
-
+        self.prob_handler = MicoProbabilityHandler()
         self.bitstream = bitarray()
         self.cabac = CabacDecoder()
 
@@ -74,7 +69,7 @@ class MicoDecoder:
         self.bitplane_sizes = []
         counter = 0
         for _ in range(max(self.block.shape)):
-            while self.cabac.decode_bit(model=self.bitplane_sizes_model):
+            while self.cabac.decode_bit(model=self.prob_handler.bitplanes_model()):
                 counter += 1
             self.bitplane_sizes.append(counter)
         self.bitplane_sizes.reverse()
@@ -82,11 +77,11 @@ class MicoDecoder:
     def decode_value(self, upper_bitplane: int = 32) -> int:
         value = 0
         for i in range(0, upper_bitplane):
-            bit = self.cabac.decode_bit(model=self.bitplane_models[i])
+            bit = self.cabac.decode_bit(model=self.prob_handler.int_model(i))
             if bit:
                 value |= 1 << i
 
-        signal = self.cabac.decode_bit(model=self.signals_model)
+        signal = self.cabac.decode_bit(model=self.prob_handler.signal_model())
         if signal:
             value = -value
 
@@ -94,18 +89,18 @@ class MicoDecoder:
 
     def _decode_flag(self, unitary: bool):
         if unitary:
-            unit_flag = self.cabac.decode_bit(model=self.unit_flags_model)
+            unit_flag = self.cabac.decode_bit(model=self.prob_handler.unit_model())
             if unit_flag:
                 return "v"
             else:
                 return "z"
 
         else:
-            split_flag = self.cabac.decode_bit(model=self.split_flags_model)
+            split_flag = self.cabac.decode_bit(model=self.prob_handler.split_model())
             if split_flag:
                 return "S"
             else:
-                block_flag = self.cabac.decode_bit(model=self.block_flags_model)
+                block_flag = self.cabac.decode_bit(model=self.prob_handler.block_model())
                 if block_flag:
                     return "F"
                 else:

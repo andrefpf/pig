@@ -40,6 +40,7 @@ class ProbabilityModel(ABC):
         return -prob_0 * np.log2(prob_0) - prob_1 * np.log2(prob_1)
 
     def total_estimated_rate(self) -> float:
+        # This estimative is not great and can be improved a lot
         return self.total_bits() * self.entropy()
 
     def add_and_estimate_bit(self, bit: bool) -> float:
