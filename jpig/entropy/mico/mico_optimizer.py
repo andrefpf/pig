@@ -114,9 +114,12 @@ class MicoOptimizer:
 
     def _estimate_unit_block(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         sub_block = self.block[block_position]
+        sub_levels = self.block_levels[block_position]
+
         value = sub_block.flatten()[0]
+        level = sub_levels.flatten()[0]
         lower_bp = self.lower_bitplane
-        upper_bp = self.block_levels[block_position].flatten()[0]
+        upper_bp = self.level_bitplanes[level]
 
         lower_mask = (1 << lower_bp) - 1
         upper_mask = ~lower_mask
