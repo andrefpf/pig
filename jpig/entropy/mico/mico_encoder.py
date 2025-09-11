@@ -13,7 +13,7 @@ from .mico_probability_handler import MicoProbabilityHandler
 type Flags = deque[str]
 
 
-ALL_ONES = np.iinfo(int).max
+ALL_ONES = np.iinfo(np.int32).max
 
 
 class MicoEncoder:
@@ -22,9 +22,9 @@ class MicoEncoder:
     """
 
     def __init__(self):
-        self.block: np.ndarray = np.array([], dtype=int)
-        self.block_levels: np.ndarray = np.array([], dtype=int)
-        self.level_bitplanes: np.ndarray = np.array([], dtype=int)
+        self.block: np.ndarray = np.array([], dtype=np.int32)
+        self.block_levels: np.ndarray = np.array([], dtype=np.int32)
+        self.level_bitplanes: np.ndarray = np.array([], dtype=np.int32)
 
         self.lagrangian = 10_000
         self.lower_bitplane = 0
@@ -48,8 +48,19 @@ class MicoEncoder:
         self.block_levels = optimizer.block_levels
 
         self.cabac.start(result=self.bitstream)
+        self.encode_bitplane_sizes()
         self.apply_encoding(self.flags.copy(), bigger_possible_slice(block.shape))
         return self.cabac.end(fill_to_byte=True)
+
+    def encode_bitplane_sizes(self):
+        last_size = self.lower_bitplane
+        self.encode_int(self.lower_bitplane, 0, 5, signed=False)
+        for size in reversed(self.level_bitplanes):
+            delta = size - last_size
+            for _ in range(delta):
+                self.cabac.encode_bit(1, model=self.bitplane_sizes_model)
+            self.cabac.encode_bit(0, model=self.bitplane_sizes_model)
+        self.prob_handler.clear()
 
     def apply_encoding(self, flags: Flags, block_position: tuple[slice, ...]):
         sub_block = self.block[block_position]
@@ -89,9 +100,6 @@ class MicoEncoder:
         model = self.prob_handler.unit_model()
         self.cabac.encode_bit((value & mask) != 0, model=model)
         self.encode_int(value, self.lower_bitplane, upper_bitplane, signed=True)
-
-    def encode_full(self, block_position: tuple[slice, ...]):
-        pass
 
     def encode_int(
         self,
