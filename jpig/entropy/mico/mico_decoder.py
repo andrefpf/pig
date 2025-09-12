@@ -121,22 +121,28 @@ class MicoDecoder:
         max_bp = self._get_bitplane(block_position)
 
         if unitary:
-            unit_flag = self.cabac.decode_bit(model=self.prob_handler.unit_model())
+            unit_model = self.prob_handler.unit_model()
+            unit_flag = self.cabac.decode_bit(model=unit_model)
+
             if unit_flag:
                 return "v"
             else:
                 return "z"
 
         else:
-            split_flag = self.cabac.decode_bit(model=self.prob_handler.split_model(max_bp))
-            if split_flag:
-                return "S"
-            else:
-                block_flag = self.cabac.decode_bit(model=self.prob_handler.block_model(max_bp))
-                if block_flag:
-                    return "F"
+            significant_model = self.prob_handler.significant_model(max_bp)
+            significant_flag = self.cabac.decode_bit(model=significant_model)
+
+            if significant_flag:
+                split_model = self.prob_handler.split_model(max_bp)
+                split_flag = self.cabac.decode_bit(model=split_model)
+
+                if split_flag:
+                    return "S"
                 else:
-                    return "E"
+                    return "F"
+            else:
+                return "E"
 
     def _get_bitplane(self, block_position: tuple[slice]):
         level = max(s.start for s in block_position)

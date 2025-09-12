@@ -77,24 +77,24 @@ class MicoEncoder:
         flag = flags.popleft()
         max_bp = self.get_bitplane(block_position)
         model_split = self.prob_handler.split_model(max_bp)
-        model_block = self.prob_handler.block_model(max_bp)
+        significant_block = self.prob_handler.significant_model(max_bp)
 
-        if flag == "S":
-            self.cabac.encode_bit(1, model=model_split)
-            for sub_pos in split_shape_in_half(block_position):
-                self.apply_encoding(flags, sub_pos)
-
-        elif flag == "E":
-            self.cabac.encode_bit(0, model=model_split)
-            self.cabac.encode_bit(0, model=model_block)
+        if flag == "E":
+            self.cabac.encode_bit(0, model=significant_block)
             return
 
         elif flag == "F":
+            self.cabac.encode_bit(1, model=significant_block)
             self.cabac.encode_bit(0, model=model_split)
-            self.cabac.encode_bit(1, model=model_block)
             for i, upper_bitplane in np.ndenumerate(upper_bitplanes):
                 value = sub_block[i].flatten()[0]
                 self.encode_int(value, self.lower_bitplane, upper_bitplane, signed=True)
+
+        elif flag == "S":
+            self.cabac.encode_bit(1, model=significant_block)
+            self.cabac.encode_bit(1, model=model_split)
+            for sub_pos in split_shape_in_half(block_position):
+                self.apply_encoding(flags, sub_pos)
 
         elif flag == "z":
             assert sub_block.size == 1

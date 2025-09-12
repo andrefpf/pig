@@ -100,20 +100,6 @@ class MicoOptimizer:
         else:
             return self._estimate_full(block_position)
 
-    def _estimate_split(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
-        max_bp = self._get_bitplane(block_position)
-
-        rd = RD()
-        rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(0)
-
-        flags = deque("S")
-        for sub_pos in split_shape_in_half(block_position):
-            current_flags, current_rd = self.optimize_tree(sub_pos)
-            flags += current_flags
-            rd += current_rd
-
-        return flags, rd
-
     def _estimate_unit_block(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         sub_block = self.block[block_position]
         sub_levels = self.block_levels[block_position]
@@ -140,6 +126,16 @@ class MicoOptimizer:
 
         return (flags, rd)
 
+    def _estimate_empty(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
+        flags = deque("E")
+        sub_block = self.block[block_position]
+        max_bp = self._get_bitplane(block_position)
+
+        rd = RD()
+        rd.rate += self.prob_handler.significant_model(max_bp).add_and_estimate_bit(0)
+        rd.distortion = energy(sub_block)
+        return flags, rd
+
     def _estimate_full(
         self,
         block_position: tuple[slice, ...],
@@ -151,8 +147,8 @@ class MicoOptimizer:
         max_bp = self._get_bitplane(block_position)
 
         rd = RD()
+        rd.rate += self.prob_handler.significant_model(max_bp).add_and_estimate_bit(1)
         rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(0)
-        rd.rate += self.prob_handler.block_model(max_bp).add_and_estimate_bit(1)
 
         for level, value in zip(sub_levels.flatten(), sub_block.flatten()):
             upper_bp = self.level_bitplanes[level]
@@ -160,15 +156,19 @@ class MicoOptimizer:
 
         return flags, rd
 
-    def _estimate_empty(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
-        flags = deque("E")
-        sub_block = self.block[block_position]
+    def _estimate_split(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         max_bp = self._get_bitplane(block_position)
 
         rd = RD()
-        rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(0)
-        rd.rate += self.prob_handler.block_model(max_bp).add_and_estimate_bit(0)
-        rd.distortion = energy(sub_block)
+        rd.rate += self.prob_handler.significant_model(max_bp).add_and_estimate_bit(1)
+        rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(1)
+
+        flags = deque("S")
+        for sub_pos in split_shape_in_half(block_position):
+            current_flags, current_rd = self.optimize_tree(sub_pos)
+            flags += current_flags
+            rd += current_rd
+
         return flags, rd
 
     def _estimate_integer(
