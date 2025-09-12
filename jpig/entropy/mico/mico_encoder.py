@@ -75,8 +75,9 @@ class MicoEncoder:
             return
 
         flag = flags.popleft()
-        model_split = self.prob_handler.split_model()
-        model_block = self.prob_handler.block_model()
+        max_bp = self.get_bitplane(block_position)
+        model_split = self.prob_handler.split_model(max_bp)
+        model_block = self.prob_handler.block_model(max_bp)
 
         if flag == "S":
             self.cabac.encode_bit(1, model=model_split)

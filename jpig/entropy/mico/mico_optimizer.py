@@ -101,8 +101,10 @@ class MicoOptimizer:
             return self._estimate_full(block_position)
 
     def _estimate_split(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
+        max_bp = self._get_bitplane(block_position)
+
         rd = RD()
-        rd.rate += self.prob_handler.split_model().add_and_estimate_bit(0)
+        rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(0)
 
         flags = deque("S")
         for sub_pos in split_shape_in_half(block_position):
@@ -146,10 +148,11 @@ class MicoOptimizer:
         sub_block = self.block[block_position]
         sub_levels = self.block_levels[block_position]
         lower_bp = self.lower_bitplane
+        max_bp = self._get_bitplane(block_position)
 
         rd = RD()
-        rd.rate += self.prob_handler.split_model().add_and_estimate_bit(0)
-        rd.rate += self.prob_handler.block_model().add_and_estimate_bit(1)
+        rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(0)
+        rd.rate += self.prob_handler.block_model(max_bp).add_and_estimate_bit(1)
 
         for level, value in zip(sub_levels.flatten(), sub_block.flatten()):
             upper_bp = self.level_bitplanes[level]
@@ -160,10 +163,11 @@ class MicoOptimizer:
     def _estimate_empty(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         flags = deque("E")
         sub_block = self.block[block_position]
+        max_bp = self._get_bitplane(block_position)
 
         rd = RD()
-        rd.rate += self.prob_handler.split_model().add_and_estimate_bit(0)
-        rd.rate += self.prob_handler.block_model().add_and_estimate_bit(0)
+        rd.rate += self.prob_handler.split_model(max_bp).add_and_estimate_bit(0)
+        rd.rate += self.prob_handler.block_model(max_bp).add_and_estimate_bit(0)
         rd.distortion = energy(sub_block)
         return flags, rd
 
@@ -192,6 +196,10 @@ class MicoOptimizer:
             rd.rate += model.add_and_estimate_bit(value < 0)
 
         return rd
+
+    def _get_bitplane(self, block_position: tuple[slice]):
+        level = max(s.start for s in block_position)
+        return self.level_bitplanes[level]
 
     @staticmethod
     def find_bitplane_per_level(block: np.ndarray) -> np.ndarray:

@@ -5,11 +5,11 @@ class MicoProbabilityHandler:
     def __init__(self):
         self._bitplane_sizes_model = FrequentistPM()
         self._signals_probability_model = FrequentistPM()
-        self._integer_probability_models = [FrequentistPM() for _ in range(32)]
-
         self._unit_flags_model = FrequentistPM()
-        self._split_flags_model = FrequentistPM()
-        self._block_flags_model = FrequentistPM()
+
+        self._integer_probability_models = [FrequentistPM() for _ in range(32)]
+        self._split_flags_models = [FrequentistPM() for _ in range(32)]
+        self._block_flags_models = [FrequentistPM() for _ in range(32)]
 
     def signal_model(self) -> FrequentistPM:
         return self._signals_probability_model
@@ -18,11 +18,13 @@ class MicoProbabilityHandler:
         assert 0 <= bitplane < 32
         return self._integer_probability_models[bitplane]
 
-    def split_model(self) -> FrequentistPM:
-        return self._split_flags_model
+    def split_model(self, bitplane: int) -> FrequentistPM:
+        assert 0 <= bitplane < 32
+        return self._split_flags_models[bitplane]
 
-    def block_model(self) -> FrequentistPM:
-        return self._block_flags_model
+    def block_model(self, bitplane: int) -> FrequentistPM:
+        assert 0 <= bitplane < 32
+        return self._block_flags_models[bitplane]
 
     def unit_model(self) -> FrequentistPM:
         return self._unit_flags_model
@@ -58,8 +60,8 @@ class MicoProbabilityHandler:
         return (
             self._bitplane_sizes_model,
             self._signals_probability_model,
-            *self._integer_probability_models,
             self._unit_flags_model,
-            self._split_flags_model,
-            self._block_flags_model,
+            *self._integer_probability_models,
+            *self._split_flags_models,
+            *self._block_flags_models,
         )

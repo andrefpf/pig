@@ -48,7 +48,7 @@ class MicoDecoder:
         if np.all(upper_bitplanes <= 0):
             return
 
-        flag = self.decode_flag(sub_block.size == 1)
+        flag = self.decode_flag(block_position)
 
         if flag == "S":  # Split
             for sub_pos in split_shape_in_half(block_position):
@@ -116,7 +116,10 @@ class MicoDecoder:
 
         return value
 
-    def decode_flag(self, unitary: bool):
+    def decode_flag(self, block_position: tuple[slice]):
+        unitary = self.block[block_position].size == 1
+        max_bp = self._get_bitplane(block_position)
+
         if unitary:
             unit_flag = self.cabac.decode_bit(model=self.prob_handler.unit_model())
             if unit_flag:
@@ -125,11 +128,11 @@ class MicoDecoder:
                 return "z"
 
         else:
-            split_flag = self.cabac.decode_bit(model=self.prob_handler.split_model())
+            split_flag = self.cabac.decode_bit(model=self.prob_handler.split_model(max_bp))
             if split_flag:
                 return "S"
             else:
-                block_flag = self.cabac.decode_bit(model=self.prob_handler.block_model())
+                block_flag = self.cabac.decode_bit(model=self.prob_handler.block_model(max_bp))
                 if block_flag:
                     return "F"
                 else:
