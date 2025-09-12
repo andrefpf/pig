@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from jpig.entropy import MicoDecoder, MicoEncoderOld
+from jpig.entropy import MicoDecoder, MicoEncoder
+from jpig.entropy.mico.mico_optimizer import MicoOptimizer
 
 
 def test_mico_bitplanes():
@@ -13,9 +14,7 @@ def test_mico_bitplanes():
             [0, 0, 3, -1],
         ]
     )  # fmt: skip
-    encoder = MicoEncoderOld()
-    encoder.block = original
-    assert encoder._calculate_bitplane_sizes() == [5, 4, 2, 2]
+    assert list(MicoOptimizer.find_bitplane_per_level(original)) == [5, 4, 2, 2]
 
 
 def test_mico_easy():
@@ -28,30 +27,38 @@ def test_mico_easy():
         ]
     )  # fmt: skip
 
-    encoder = MicoEncoderOld()
+    encoder = MicoEncoder()
     decoder = MicoDecoder()
 
     # Encoding with lagrangian equals to zero
     # i.e. without introducing losses
     encoded = encoder.encode(
         original,
-        lagrangian=1e-6,
+        lagrangian=1e-12,
     )
     decoded = decoder.decode(
         encoded,
         original.shape,
     )
 
-    assert encoder.flags == "SFSzvzzEF"
-    assert encoder.bitplane_sizes == decoder.bitplane_sizes
+    flags = "".join(encoder.flags)
+
+    assert (flags == "SFSzvzzEF") or (flags == "SFFEF")
     assert np.allclose(original, decoded)
+    assert encoder.lower_bitplane == decoder.lower_bitplane
+
+    for e, d in zip(encoder.level_bitplanes, decoder.level_bitplanes):
+        if d <= decoder.lower_bitplane:
+            assert d > e
+        else:
+            assert d == e
 
 
 # @pytest.mark.skip
 def test_mico_random():
     original = np.random.randint(0, 255, (9, 10, 8, 5, 2))
 
-    encoder = MicoEncoderOld()
+    encoder = MicoEncoder()
     decoder = MicoDecoder()
 
     # Encoding with lagrangian equals to zero
@@ -65,5 +72,11 @@ def test_mico_random():
         original.shape,
     )
 
-    assert encoder.bitplane_sizes == decoder.bitplane_sizes
+    assert encoder.lower_bitplane == decoder.lower_bitplane
     assert np.allclose(original, decoded)
+
+    for e, d in zip(encoder.level_bitplanes, decoder.level_bitplanes):
+        if d <= decoder.lower_bitplane:
+            assert d > e
+        else:
+            assert d == e
