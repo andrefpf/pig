@@ -1,4 +1,4 @@
-from itertools import pairwise, product
+from itertools import chain, pairwise, product
 from typing import Generator
 
 import numpy as np
@@ -34,9 +34,10 @@ def split_blocks_in_half(block: np.ndarray) -> Generator[np.ndarray]:
 def split_blocks_equal_size(block: np.ndarray, block_size: int) -> list[np.ndarray]:
     slices_per_dimension = []
     for size in block.shape:
+        keypoints = chain(range(0, size, block_size), [size])
         slices_current_dimension = tuple(
             slice(a, b) for (a, b) in
-            pairwise(range(0, size + 1, block_size))
+            pairwise(keypoints)
         )  # fmt: skip
         slices_per_dimension.append(tuple(slices_current_dimension))
 
