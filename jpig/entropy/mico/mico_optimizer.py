@@ -69,11 +69,8 @@ class MicoOptimizer:
         if sub_block.size == 1:
             return self._estimate_unit_block(block_position)
 
-        # if np.all(sub_block == 0):
-        #     return self._estimate_empty(block_position)
-
-        # if np.all(sub_block != 0):
-        #     return self._estimate_full(block_position, lower_bp)
+        if np.all(sub_block == 0):
+            return self._estimate_empty(block_position)
 
         self.prob_handler.push()
         _, empty_rd = self._estimate_empty(block_position)
