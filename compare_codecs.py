@@ -7,7 +7,7 @@ from PIL import Image
 
 from jpig.codecs import BlockedMico, BlockedMicoQuantized, BlockedMule
 from jpig.media import RawImage
-from jpig.metrics.image_metrics import psnr
+from jpig.metrics.image_metrics import mse, psnr
 from jpig.metrics.rate_distortion import RD
 from jpig.metrics.rd_curve import find_rd_curve, plot_rd_curves
 from jpig.utils.pgx_handler import PGXHandler
@@ -75,7 +75,6 @@ def test_jpeg_pleno(path: str, lagrangian: float) -> RD:
     decoder_command = "/home/andre/Documents/parallel-jplm/bin/jpl-decoder-bin -i .tmp/bla.jpl -o .tmp/bla/"
     subprocess.run(decoder_command.split(), capture_output=True)
 
-    
     handler = PGXHandler()
     original = handler.read(path / "0/000_000.pgx")
     decoded = handler.read(".tmp/bla/0/000_000.pgx")
@@ -100,6 +99,11 @@ def test_mule(path: str, lagrangian: float) -> RD:
     codec_1 = BlockedMule()
     decoded = codec_1.decode(bitstream)
 
+    print("MULE")
+    print(codec_0.estimated_rd.rate)
+    print(len(bitstream))
+    print()
+
     return RD(
         rate=len(bitstream) / img.number_of_samples(),
         distortion=psnr(img, decoded, img.bitdepth),
@@ -117,6 +121,11 @@ def test_mico(path: str, lagrangian: float) -> RD:
 
     codec_1 = BlockedMico()
     decoded = codec_1.decode(bitstream)
+
+    print("MICO")
+    print(codec_0.estimated_rd.rate)
+    print(len(bitstream))
+    print()
 
     return RD(
         rate=len(bitstream) / img.number_of_samples(),
@@ -144,8 +153,8 @@ def test_mico_quantized(path: str, quality: int) -> RD:
 
 
 if __name__ == "__main__":
-    path = Path("datasets/images/bikes_128x128.pgm").expanduser()
-    path_pleno = Path("datasets/images/Bikes_128x128/").expanduser()
+    path = Path("datasets/images/bikes_cropped.pgm").expanduser()
+    path_pleno = Path("datasets/images/Bikes_cropped/").expanduser()
 
     parameters = [
         (10,),
@@ -172,6 +181,7 @@ if __name__ == "__main__":
         (500,),
         (1_000,),
         (10_000,),
+        (20_000,),
     ]
 
     lagrangians_mico = [
@@ -179,6 +189,7 @@ if __name__ == "__main__":
         (500,),
         (1_000,),
         (10_000,),
+        (20_000,),
     ]
 
     lagrangians_pleno = [
@@ -186,14 +197,15 @@ if __name__ == "__main__":
         (500,),
         (1_000,),
         (10_000,),
+        (20_000,),
     ]
 
     plot_rd_curves(
-        webp_curve=find_rd_curve(partial(test_webp, path), parameters),
-        jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
-        jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
+        # webp_curve=find_rd_curve(partial(test_webp, path), parameters),
+        # jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
+        # jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
         jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
         mule_curve=find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians_mule),
-        # mico_curve=find_rd_curve(partial(test_mico, path), lagrangians_mico),
-        mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
+        mico_curve=find_rd_curve(partial(test_mico, path_pleno / "0/000_000.pgx"), lagrangians_mico),
+        # mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
     )
