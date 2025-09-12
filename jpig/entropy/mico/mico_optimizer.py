@@ -32,8 +32,8 @@ class MicoOptimizer:
 
         for i in reversed(range(0, upper_bp)):
             bit_position = 1 << i
-            lower_mask = (1 << i) - 1
-            non_zeroed = self.block_levels.flatten() >= i
+            lower_mask = bit_position - 1
+            non_zeroed = magnitudes >= bit_position
 
             model = self.prob_handler.int_model(i)
             bits_to_encode = magnitudes[non_zeroed] & bit_position != 0
