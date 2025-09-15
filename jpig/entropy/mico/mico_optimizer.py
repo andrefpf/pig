@@ -126,7 +126,7 @@ class MicoOptimizer:
     def _estimate_empty(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
         flags = deque("E")
         sub_block = self.block[block_position]
-        max_bp = self._get_bitplane(block_position)
+        max_bp = self.get_bitplane(block_position)
 
         rd = RD()
         rd.rate += self.prob_handler.significant_model(max_bp).add_and_estimate_bit(0)
@@ -141,7 +141,7 @@ class MicoOptimizer:
         sub_block = self.block[block_position]
         sub_levels = self.block_levels[block_position]
         lower_bp = self.lower_bitplane
-        max_bp = self._get_bitplane(block_position)
+        max_bp = self.get_bitplane(block_position)
 
         rd = RD()
         rd.rate += self.prob_handler.significant_model(max_bp).add_and_estimate_bit(1)
@@ -154,7 +154,7 @@ class MicoOptimizer:
         return flags, rd
 
     def _estimate_split(self, block_position: tuple[slice, ...]) -> tuple[Flags, RD]:
-        max_bp = self._get_bitplane(block_position)
+        max_bp = self.get_bitplane(block_position)
 
         rd = RD()
         rd.rate += self.prob_handler.significant_model(max_bp).add_and_estimate_bit(1)
@@ -194,9 +194,26 @@ class MicoOptimizer:
 
         return rd
 
-    def _get_bitplane(self, block_position: tuple[slice]):
-        level = max(s.start for s in block_position)
+    def get_bitplane(self, block_position: tuple[slice]):
+        level = self.get_level(block_position)
         return self.level_bitplanes[level]
+
+    @staticmethod
+    def max_level(block_position: tuple[slice, ...] | tuple[int, ...]):
+        stop_position = []
+        for s in block_position:
+            stop = s.stop if isinstance(s, slice) else s
+            stop_position.append(stop)
+        return max(stop_position)
+
+    @staticmethod
+    @cache
+    def get_level(block_position: tuple[slice, ...] | tuple[int, ...]):
+        start_position = []
+        for s in block_position:
+            start = s.start if isinstance(s, slice) else s
+            start_position.append(start)
+        return max(start_position)
 
     @staticmethod
     def find_bitplane_per_level(block: np.ndarray) -> np.ndarray:
@@ -207,7 +224,6 @@ class MicoOptimizer:
 
         tmp_block = block.copy()
         bitplane_sizes = []
-
         for i in range(max(block.shape)):
             slices = tuple(slice(0, i) for _ in range(block.ndim))
             tmp_block[*slices] = 0
@@ -249,15 +265,7 @@ class MicoOptimizer:
         3, 3, 3, 3, 4
         """
 
-        # I know it is dumb to cache and return a copy,
-        # but python iterations are slow, numpy is fast.
-        return _cached_shape_levels(shape).copy()
-
-
-@cache
-def _cached_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
-    blocks_level = np.zeros(shape, dtype=np.int32)
-    for position in np.ndindex(*shape):
-        level = max(position)
-        blocks_level[position] = level
-    return blocks_level
+        blocks_level = np.zeros(shape, dtype=np.int32)
+        for position in np.ndindex(*shape):
+            blocks_level[position] = MicoOptimizer.get_level(position)
+        return blocks_level
