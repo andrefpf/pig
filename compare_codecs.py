@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from jpig.codecs import BlockedMico, BlockedMicoQuantized, BlockedMule
+from jpig.codecs import BlockedMico, BlockedMule
 from jpig.media import RawImage
 from jpig.metrics.image_metrics import mse, psnr
 from jpig.metrics.rate_distortion import RD
@@ -99,10 +99,10 @@ def test_mule(path: str, lagrangian: float) -> RD:
     codec_1 = BlockedMule()
     decoded = codec_1.decode(bitstream)
 
-    print("MULE")
-    print(codec_0.estimated_rd.rate)
-    print(len(bitstream))
-    print()
+    # print("MULE")
+    # print(codec_0.estimated_rd.rate)
+    # print(len(bitstream))
+    # print()
 
     return RD(
         rate=len(bitstream) / img.number_of_samples(),
@@ -122,29 +122,10 @@ def test_mico(path: str, lagrangian: float) -> RD:
     codec_1 = BlockedMico()
     decoded = codec_1.decode(bitstream)
 
-    print("MICO")
-    print(codec_0.estimated_rd.rate)
-    print(len(bitstream))
-    print()
-
-    return RD(
-        rate=len(bitstream) / img.number_of_samples(),
-        distortion=psnr(img, decoded, img.bitdepth),
-    )
-
-
-def test_mico_quantized(path: str, quality: int) -> RD:
-    img = RawImage.from_file(path)
-    codec_0 = BlockedMicoQuantized()
-    bitstream = codec_0.encode(
-        img,
-        lagrangian=1e-8,
-        quality=quality,
-        block_size=16,
-    )
-
-    codec_1 = BlockedMicoQuantized()
-    decoded = codec_1.decode(bitstream)
+    # print("MICO")
+    # print(codec_0.estimated_rd.rate)
+    # print(len(bitstream))
+    # print()
 
     return RD(
         rate=len(bitstream) / img.number_of_samples(),
@@ -153,8 +134,8 @@ def test_mico_quantized(path: str, quality: int) -> RD:
 
 
 if __name__ == "__main__":
-    path = Path("datasets/images/bikes_cropped.pgm").expanduser()
-    path_pleno = Path("datasets/images/Bikes_cropped/").expanduser()
+    path = Path("datasets/images/bikes.pgm").expanduser()
+    path_pleno = Path("datasets/images/Bikes/").expanduser()
 
     parameters = [
         (10,),
@@ -176,36 +157,34 @@ if __name__ == "__main__":
         (40,),
     ]
 
-    lagrangians_mule = [
-        (100,),
+    lagrangians = [
+        # (100,),
         (500,),
         (1_000,),
         (10_000,),
         (20_000,),
+        (40_000,),
     ]
 
-    lagrangians_mico = [
-        (100,),
-        (500,),
-        (1_000,),
-        (10_000,),
-        (20_000,),
-    ]
+    # test_mico(path_pleno / "0/000_000.pgx", 40_000)
 
-    lagrangians_pleno = [
-        (100,),
-        (500,),
-        (1_000,),
-        (10_000,),
-        (20_000,),
-    ]
+    curve_mule = find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians)
+    curve_mico = find_rd_curve(partial(test_mico, path_pleno / "0/000_000.pgx"), lagrangians)
 
     plot_rd_curves(
         # webp_curve=find_rd_curve(partial(test_webp, path), parameters),
-        # jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
         # jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
-        jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians_pleno),
-        mule_curve=find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians_mule),
-        mico_curve=find_rd_curve(partial(test_mico, path_pleno / "0/000_000.pgx"), lagrangians_mico),
-        # mico_quantized_curve=find_rd_curve(partial(test_mico_quantized, path), parameters),
+        # jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
+        jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians),
+        mule_curve=curve_mule,
+        mico_curve=curve_mico,
+    )
+
+    plot_rd_curves(
+        jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians),
+        webp_curve=find_rd_curve(partial(test_webp, path), parameters),
+        jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
+        jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
+        # mule_curve=curve_mule,
+        mico_curve=curve_mico,
     )
