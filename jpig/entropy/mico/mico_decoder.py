@@ -3,10 +3,11 @@ from functools import cache
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacDecoder, FrequentistPM
+from jpig.entropy import CabacDecoder
 from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 from .mico_probability_handler import MicoProbabilityHandler
+from .utils import get_level, get_shape_levels, max_level
 
 
 class MicoDecoder:
@@ -29,7 +30,7 @@ class MicoDecoder:
         shape: tuple[int],
     ) -> np.ndarray:
         self.block = np.zeros(shape, dtype=np.int32)
-        self.block_levels = MicoDecoder.get_shape_levels(shape)
+        self.block_levels = get_shape_levels(shape)
 
         self.cabac.start(bitstream)
         self.decode_bitplane_sizes()
@@ -72,7 +73,7 @@ class MicoDecoder:
 
         elif flag == "v":  # Value
             assert sub_block.size == 1
-            bitplane = self._get_bitplane(block_position)
+            bitplane = self.get_bitplane(block_position)
             self.block[block_position] = self.decode_int(
                 self.lower_bitplane,
                 bitplane,
@@ -87,7 +88,7 @@ class MicoDecoder:
         counter = self.lower_bitplane
         level_bitplanes = []
 
-        for _ in range(max(self.block.shape)):
+        for _ in range(max_level(self.block.shape)):
             while self.cabac.decode_bit(model=self.prob_handler.bitplanes_model()):
                 counter += 1
             level_bitplanes.append(counter)
@@ -118,7 +119,7 @@ class MicoDecoder:
 
     def decode_flag(self, block_position: tuple[slice]):
         unitary = self.block[block_position].size == 1
-        max_bp = self._get_bitplane(block_position)
+        max_bp = self.get_bitplane(block_position)
 
         if unitary:
             unit_model = self.prob_handler.unit_model()
@@ -144,30 +145,6 @@ class MicoDecoder:
             else:
                 return "E"
 
-    def _get_bitplane(self, block_position: tuple[slice]):
-        level = max(s.start for s in block_position)
+    def get_bitplane(self, block_position: tuple[slice]):
+        level = get_level(block_position)
         return self.level_bitplanes[level]
-
-    @staticmethod
-    def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
-        """
-        The levels of a (4, 5) block are organized as follows:
-
-        0, 1, 2, 3, 4
-        1, 1, 2, 3, 4
-        2, 2, 2, 3, 4
-        3, 3, 3, 3, 4
-        """
-
-        # I know it is dumb to cache and return a copy,
-        # but python iterations are slow, numpy is fast.
-        return _cached_shape_levels(shape).copy()
-
-
-@cache
-def _cached_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
-    blocks_level = np.zeros(shape, dtype=np.int32)
-    for position in np.ndindex(*shape):
-        level = max(position)
-        blocks_level[position] = level
-    return blocks_level

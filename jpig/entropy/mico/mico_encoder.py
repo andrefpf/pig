@@ -9,6 +9,7 @@ from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 from .mico_optimizer import MicoOptimizer
 from .mico_probability_handler import MicoProbabilityHandler
+from .utils import get_level
 
 type Flags = deque[str]
 
@@ -130,8 +131,5 @@ class MicoEncoder:
             self.cabac.encode_bit(value < 0, model=model)
 
     def get_bitplane(self, block_position: tuple[slice, ...]):
-        level = self.get_level(block_position)
+        level = get_level(block_position)
         return self.level_bitplanes[level]
-
-    def get_level(self, block_position: tuple[slice, ...]):
-        return max(s.start for s in block_position)

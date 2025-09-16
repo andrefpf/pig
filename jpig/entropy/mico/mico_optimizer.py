@@ -8,6 +8,7 @@ from jpig.metrics import RD, energy
 from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 from .mico_probability_handler import MicoProbabilityHandler
+from .utils import get_block_levels, get_level, max_level
 
 type Flags = deque[str]
 
@@ -18,7 +19,7 @@ class MicoOptimizer:
         self.lagrangian = lagrangian
         self.prob_handler = MicoProbabilityHandler()
 
-        self.block_levels = MicoOptimizer.get_block_levels(self.block)
+        self.block_levels = get_block_levels(self.block)
         self.level_bitplanes = MicoOptimizer.find_bitplane_per_level(self.block)
         self.lower_bitplane = self.optimize_lower_bitplane()
 
@@ -195,25 +196,8 @@ class MicoOptimizer:
         return rd
 
     def get_bitplane(self, block_position: tuple[slice]):
-        level = self.get_level(block_position)
+        level = get_level(block_position)
         return self.level_bitplanes[level]
-
-    @staticmethod
-    def max_level(block_position: tuple[slice, ...] | tuple[int, ...]):
-        stop_position = []
-        for s in block_position:
-            stop = s.stop if isinstance(s, slice) else s
-            stop_position.append(stop)
-        return max(stop_position)
-
-    @staticmethod
-    @cache
-    def get_level(block_position: tuple[slice, ...] | tuple[int, ...]):
-        start_position = []
-        for s in block_position:
-            start = s.start if isinstance(s, slice) else s
-            start_position.append(start)
-        return max(start_position)
 
     @staticmethod
     def find_bitplane_per_level(block: np.ndarray) -> np.ndarray:
@@ -222,16 +206,17 @@ class MicoOptimizer:
         The code is a bit dumb, but it works and is fast enough.
         """
 
-        tmp_block = block.copy()
-        bitplane_sizes = []
-        for i in range(max(block.shape)):
-            slices = tuple(slice(0, i) for _ in range(block.ndim))
-            tmp_block[*slices] = 0
+        total_levels = max_level(block.shape)
+        bitplane_sizes = np.array([0 for _ in range(total_levels)], dtype=np.int32)
 
-            bp = MicoOptimizer.find_max_bitplane(tmp_block)
-            bitplane_sizes.append(bp)
+        for position, value in np.ndenumerate(block):
+            level = get_level(position)
+            max_bp = int(value).bit_length()
+            bitplane_sizes[level] = max(bitplane_sizes[level], max_bp)
 
-        return np.array(bitplane_sizes, dtype=np.int32)
+        # Each level is assumed to have equal or smaller bitplane size
+        bitplane_sizes = np.maximum.accumulate(bitplane_sizes[::-1])[::-1]
+        return bitplane_sizes
 
     @staticmethod
     def find_max_bitplane(block: np.ndarray):
@@ -241,31 +226,3 @@ class MicoOptimizer:
         """
         max_abs = np.max(np.abs(block))
         return int(max_abs).bit_length()
-
-    @staticmethod
-    def get_block_levels(block: np.ndarray) -> np.ndarray:
-        """
-        The levels of a (4, 5) block are organized as follows:
-
-        0, 1, 2, 3, 4
-        1, 1, 2, 3, 4
-        2, 2, 2, 3, 4
-        3, 3, 3, 3, 4
-        """
-        return MicoOptimizer.get_shape_levels(block.shape)
-
-    @staticmethod
-    def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
-        """
-        The levels of a (4, 5) block are organized as follows:
-
-        0, 1, 2, 3, 4
-        1, 1, 2, 3, 4
-        2, 2, 2, 3, 4
-        3, 3, 3, 3, 4
-        """
-
-        blocks_level = np.zeros(shape, dtype=np.int32)
-        for position in np.ndindex(*shape):
-            blocks_level[position] = MicoOptimizer.get_level(position)
-        return blocks_level
