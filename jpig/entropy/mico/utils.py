@@ -10,6 +10,7 @@ def max_level(block_position: tuple[slice, ...] | tuple[int, ...]):
         stop = s.stop if isinstance(s, slice) else s
         stop_position.append(stop)
     return max(stop_position)
+    # return sum(stop_position)
 
 
 @cache
@@ -19,6 +20,10 @@ def get_level(block_position: tuple[slice, ...] | tuple[int, ...]):
         start = s.start if isinstance(s, slice) else s
         start_position.append(start)
     return max(start_position)
+    # s = sum(start_position)
+    # if s == 0:
+    #     return 0
+    # return (s + 1) // 2
 
 
 def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
@@ -32,9 +37,10 @@ def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:
     """
 
     blocks_level = np.zeros(shape, dtype=np.int32)
+    total_levels = max_level(shape)
     for position in np.ndindex(*shape):
         blocks_level[position] = get_level(position)
-    return blocks_level
+    return blocks_level.clip(0, total_levels - 1)
 
 
 def get_block_levels(block: np.ndarray) -> np.ndarray:

@@ -130,6 +130,8 @@ class MicoEncoder:
             model = self.prob_handler.signal_model()
             self.cabac.encode_bit(value < 0, model=model)
 
-    def get_bitplane(self, block_position: tuple[slice, ...]):
+    def get_bitplane(self, block_position: tuple[slice]):
         level = get_level(block_position)
+        if level >= len(self.level_bitplanes):
+            return self.level_bitplanes[-1]
         return self.level_bitplanes[level]

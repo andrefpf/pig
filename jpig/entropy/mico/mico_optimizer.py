@@ -197,6 +197,8 @@ class MicoOptimizer:
 
     def get_bitplane(self, block_position: tuple[slice]):
         level = get_level(block_position)
+        if level >= len(self.level_bitplanes):
+            return self.level_bitplanes[-1]
         return self.level_bitplanes[level]
 
     @staticmethod
@@ -210,7 +212,7 @@ class MicoOptimizer:
         bitplane_sizes = np.array([0 for _ in range(total_levels)], dtype=np.int32)
 
         for position, value in np.ndenumerate(block):
-            level = get_level(position)
+            level = min(get_level(position), total_levels - 1)
             max_bp = int(value).bit_length()
             bitplane_sizes[level] = max(bitplane_sizes[level], max_bp)
 
