@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="300" src="https://github.com/andrefpf/jpig/blob/main/docs/pig_logo.png?raw=true" align="center">
+  <img width="300" src="https://github.com/andrefpf/pig/blob/main/docs/pig_logo.png?raw=true" align="center">
 </div>
 
 # Overview
