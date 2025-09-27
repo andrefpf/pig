@@ -2,7 +2,7 @@ from collections import deque
 
 import numpy as np
 
-from jpig.entropy import MuleDecoder, MuleEncoder
+from pig.entropy import MuleDecoder, MuleEncoder
 
 
 def test_mule_easy():

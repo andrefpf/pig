@@ -2,7 +2,7 @@ import numpy as np
 from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
-from jpig.entropy import MicoDecoder, MicoEncoder
+from pig.entropy import MicoDecoder, MicoEncoder
 
 
 class WholeImageMico:

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from jpig.entropy import MicoDecoder, MicoEncoder
-from jpig.entropy.mico.mico_optimizer import MicoOptimizer
+from pig.entropy import MicoDecoder, MicoEncoder
+from pig.entropy.mico.mico_optimizer import MicoOptimizer
 
 
 def test_mico_bitplanes():

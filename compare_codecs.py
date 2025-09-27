@@ -5,12 +5,12 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from jpig.codecs import BlockedMico, BlockedMule
-from jpig.media import RawImage
-from jpig.metrics.image_metrics import mse, psnr
-from jpig.metrics.rate_distortion import RD
-from jpig.metrics.rd_curve import find_rd_curve, plot_rd_curves
-from jpig.utils.pgx_handler import PGXHandler
+from pig.codecs import BlockedMico, BlockedMule
+from pig.media import RawImage
+from pig.metrics.image_metrics import mse, psnr
+from pig.metrics.rate_distortion import RD
+from pig.metrics.rd_curve import find_rd_curve, plot_rd_curves
+from pig.utils.pgx_handler import PGXHandler
 
 
 def test_jpeg(path: str | Path, quality: int) -> RD:
@@ -168,17 +168,17 @@ if __name__ == "__main__":
 
     # test_mico(path_pleno / "0/000_000.pgx", 40_000)
 
-    curve_mule = find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians)
-    curve_mico = find_rd_curve(partial(test_mico, path_pleno / "0/000_000.pgx"), lagrangians)
+    # curve_mule = find_rd_curve(partial(test_mule, path_pleno / "0/000_000.pgx"), lagrangians)
+    # curve_mico = find_rd_curve(partial(test_mico, path_pleno / "0/000_000.pgx"), lagrangians)
 
-    plot_rd_curves(
-        # webp_curve=find_rd_curve(partial(test_webp, path), parameters),
-        # jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
-        # jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
-        jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians),
-        mule_curve=curve_mule,
-        mico_curve=curve_mico,
-    )
+    # plot_rd_curves(
+    #     # webp_curve=find_rd_curve(partial(test_webp, path), parameters),
+    #     # jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
+    #     # jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
+    #     jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians),
+    #     mule_curve=curve_mule,
+    #     mico_curve=curve_mico,
+    # )
 
     plot_rd_curves(
         jpeg_pleno_curve=find_rd_curve(partial(test_jpeg_pleno, path_pleno), lagrangians),
@@ -186,5 +186,5 @@ if __name__ == "__main__":
         jpeg_2000_curve=find_rd_curve(partial(test_jpeg_2000, path), jpeg_2k_parameters),
         jpeg_curve=find_rd_curve(partial(test_jpeg, path), parameters),
         # mule_curve=curve_mule,
-        mico_curve=curve_mico,
+        # mico_curve=curve_mico,
     )

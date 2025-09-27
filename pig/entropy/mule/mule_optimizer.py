@@ -4,9 +4,9 @@ from typing import Sequence
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder, FrequentistPM
-from jpig.metrics import RD, energy
-from jpig.utils.block_utils import split_blocks_in_half
+from pig.entropy import CabacEncoder, FrequentistPM
+from pig.metrics import RD, energy
+from pig.utils.block_utils import split_blocks_in_half
 
 from .mule_probability_handler import MuleProbabilityHandler
 

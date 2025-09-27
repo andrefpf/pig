@@ -2,7 +2,7 @@ import numpy as np
 from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
-from jpig.entropy import MuleDecoder, MuleEncoder
+from pig.entropy import MuleDecoder, MuleEncoder
 
 
 class WholeImageMule:

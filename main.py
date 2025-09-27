@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import dctn, idctn
 
-from jpig.codecs import BlockedMicoQuantized, BlockedMule
-from jpig.entropy.mico.mico_decoder import MicoDecoder
-from jpig.entropy.mico.mico_encoder import MicoEncoder
-from jpig.entropy.mico.mico_optimizer import MicoOptimizer
-from jpig.entropy.mule.mule_optimizer import MuleOptimizer
-from jpig.media import RawImage
-from jpig.metrics import mse, psnr
-from jpig.utils.block_utils import bigger_possible_slice
+from pig.codecs import BlockedMule
+from pig.entropy.mico.mico_decoder import MicoDecoder
+from pig.entropy.mico.mico_encoder import MicoEncoder
+from pig.entropy.mico.mico_optimizer import MicoOptimizer
+from pig.entropy.mule.mule_optimizer import MuleOptimizer
+from pig.media import RawImage
+from pig.metrics import mse, psnr
+from pig.utils.block_utils import bigger_possible_slice
 
 
 def compare_data(data1, data2, bitdepth=8):

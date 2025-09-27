@@ -1,8 +1,8 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacDecoder, FrequentistPM
-from jpig.utils.block_utils import split_blocks_in_half
+from pig.entropy import CabacDecoder, FrequentistPM
+from pig.utils.block_utils import split_blocks_in_half
 
 from .mule_probability_handler import MuleProbabilityHandler
 

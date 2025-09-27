@@ -4,7 +4,7 @@ from typing import Callable, Sequence
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from jpig.metrics import RD
+from pig.metrics import RD
 
 
 def find_rd_curve(

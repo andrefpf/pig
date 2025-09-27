@@ -2,7 +2,7 @@ from typing import Literal
 
 from bitarray import bitarray
 
-from jpig.entropy.probability_model.frequentist_pm import FrequentistPM
+from pig.entropy.probability_model.frequentist_pm import FrequentistPM
 
 
 class CabacEncoder:

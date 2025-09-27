@@ -4,12 +4,12 @@ import numpy as np
 from bitarray import bitarray
 from scipy.fft import dctn, idctn
 
-from jpig.entropy import MuleDecoder, MuleEncoder
-from jpig.metrics.rate_distortion import RD
-from jpig.utils.block_utils import split_blocks_equal_size
+from pig.entropy import MicoDecoder, MicoEncoder
+from pig.metrics.rate_distortion import RD
+from pig.utils.block_utils import split_blocks_equal_size
 
 
-class BlockedMule:
+class BlockedMico:
     def encode(
         self,
         data: np.ndarray,
@@ -17,23 +17,20 @@ class BlockedMule:
         block_size: int = 16,
         bitdepth: int = 8,
     ) -> bitarray:
-        max_bitplane = data.ndim * (bitdepth - 1)
-
         bitstream = bitarray()
         block_encoded_sizes = []
         self.estimated_rd = RD()
 
         shifted = data.astype(np.int32) - (1 << (bitdepth - 1))
         for block in split_blocks_equal_size(shifted, block_size):
-            mule_encoder = MuleEncoder()
+            mico_encoder = MicoEncoder()
             transformed_block: np.ndarray = dctn(block, norm="ortho")
             transformed_block = transformed_block.round().astype(int)
-            block_bitstream = mule_encoder.encode(
+            block_bitstream = mico_encoder.encode(
                 transformed_block,
                 lagrangian,
-                upper_bitplane=max_bitplane,
             )
-            self.estimated_rd += mule_encoder.estimated_rd
+            self.estimated_rd += mico_encoder.estimated_rd
             bitstream += block_bitstream
             block_encoded_sizes.append(len(block_bitstream) // 8)
 
@@ -53,7 +50,7 @@ class BlockedMule:
             self._add_bits(header, block_bits, size)
 
         self._add_bits(header, 8, bitdepth)
-        self._add_bits(header, 8, max_bitplane)
+
         return header + bitstream
 
     def decode(self, codestream: bitarray) -> np.ndarray:
@@ -75,7 +72,6 @@ class BlockedMule:
             block_encoded_sizes.append(size)
 
         bitdepth = self._consume_bits(codestream, 8)
-        max_bitplane = self._consume_bits(codestream, 8)
 
         last_pos = 0
         bitstreams: list[bitarray] = list()
@@ -87,11 +83,10 @@ class BlockedMule:
 
         decoded = np.zeros(shape, dtype=int)
         for bitstream, block in zip(bitstreams, split_blocks_equal_size(decoded, block_size)):
-            mule_decoder = MuleDecoder()
-            transformed_block = mule_decoder.decode(
+            mico_decoder = MicoDecoder()
+            transformed_block = mico_decoder.decode(
                 bitstream,
                 block.shape,
-                upper_bitplane=max_bitplane,
             )
             decoded_block: np.ndarray = idctn(transformed_block, norm="ortho")
             decoded_block = decoded_block.round().astype(int)

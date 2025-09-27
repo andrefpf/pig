@@ -1,4 +1,4 @@
-from jpig.utils.block_utils import split_shape_in_half
+from pig.utils.block_utils import split_shape_in_half
 
 
 def test_shape_split():

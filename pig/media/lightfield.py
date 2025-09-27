@@ -16,7 +16,7 @@ class RawLightField(np.ndarray):
     def from_file(cls, path: str | Path):
         import re
 
-        from jpig.utils.pgx_handler import PGXHandler
+        from pig.utils.pgx_handler import PGXHandler
 
         t_view_regex = re.compile(r"[0-9]+(?=_)")
         s_view_regex = re.compile(r"(?<=_)[0-9]+")

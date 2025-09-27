@@ -3,9 +3,9 @@ from collections import deque
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacEncoder
-from jpig.metrics import RD
-from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
+from pig.entropy import CabacEncoder
+from pig.metrics import RD
+from pig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 from .mico_optimizer import MicoOptimizer
 from .mico_probability_handler import MicoProbabilityHandler

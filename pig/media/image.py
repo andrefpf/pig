@@ -16,7 +16,7 @@ class RawImage(np.ndarray):
         path = Path(path).expanduser()
 
         if path.suffix.lower() == ".pgx":
-            from jpig.utils.pgx_handler import PGXHandler
+            from pig.utils.pgx_handler import PGXHandler
 
             obj = cls(PGXHandler().read(path))
             obj.bitdepth = 10  # TODO: actually read it

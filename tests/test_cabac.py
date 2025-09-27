@@ -1,7 +1,7 @@
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import (
+from pig.entropy import (
     CabacDecoder,
     CabacEncoder,
     ExponentialSmoothingPM,

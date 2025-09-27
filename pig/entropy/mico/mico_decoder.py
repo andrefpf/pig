@@ -3,8 +3,8 @@ from functools import cache
 import numpy as np
 from bitarray import bitarray
 
-from jpig.entropy import CabacDecoder
-from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
+from pig.entropy import CabacDecoder
+from pig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 from .mico_probability_handler import MicoProbabilityHandler
 from .utils import get_level, get_shape_levels, max_level

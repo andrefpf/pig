@@ -4,8 +4,8 @@ from typing import Sequence
 
 import numpy as np
 
-from jpig.metrics import RD, energy
-from jpig.utils.block_utils import bigger_possible_slice, split_shape_in_half
+from pig.metrics import RD, energy
+from pig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 
 from .mico_probability_handler import MicoProbabilityHandler
 from .utils import get_block_levels, get_level, max_level

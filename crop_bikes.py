@@ -1,4 +1,4 @@
-from jpig.utils.pgx_handler import PGXHandler
+from pig.utils.pgx_handler import PGXHandler
 from PIL import Image
 
 handler = PGXHandler()
