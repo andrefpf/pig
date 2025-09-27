@@ -3,7 +3,7 @@
 </div>
 
 # Overview
-This is an instructive library that implements multiple methods to encode images, and allows the user to create
+Python Image Guide (PIG) is an instructive library that implements multiple methods to encode images, and allows the user to create
 his own encoder by combining each module.
 
 It also have multiple ways to visualize the different processes envolved in image coding.
