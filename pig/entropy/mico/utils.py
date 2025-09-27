@@ -1,29 +1,20 @@
-from functools import cache
-
 import numpy as np
 
 
-@cache
 def max_level(block_position: tuple[slice, ...] | tuple[int, ...]):
     stop_position = []
     for s in block_position:
         stop = s.stop if isinstance(s, slice) else s
         stop_position.append(stop)
     return max(stop_position)
-    # return sum(stop_position)
 
 
-@cache
 def get_level(block_position: tuple[slice, ...] | tuple[int, ...]):
     start_position = []
     for s in block_position:
         start = s.start if isinstance(s, slice) else s
         start_position.append(start)
     return max(start_position)
-    # s = sum(start_position)
-    # if s == 0:
-    #     return 0
-    # return (s + 1) // 2
 
 
 def get_shape_levels(shape: tuple[int, ...]) -> np.ndarray:

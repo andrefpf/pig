@@ -10,7 +10,7 @@ from pig.utils.block_utils import bigger_possible_slice, split_shape_in_half
 from .mico_probability_handler import MicoProbabilityHandler
 from .utils import get_block_levels, get_level, max_level
 
-type Flags = deque[str]
+Flags = deque[str]
 
 
 class MicoOptimizer:

@@ -11,7 +11,7 @@ from .mico_optimizer import MicoOptimizer
 from .mico_probability_handler import MicoProbabilityHandler
 from .utils import get_level
 
-type Flags = deque[str]
+Flags = deque[str]
 
 
 ALL_ONES = np.iinfo(np.int32).max

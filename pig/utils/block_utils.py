@@ -4,7 +4,7 @@ from typing import Generator
 import numpy as np
 
 
-def split_shape_in_half(_slices: tuple[int] | tuple[slice]) -> Generator[slice]:
+def split_shape_in_half(_slices: tuple[int] | tuple[slice]) -> Generator[slice, None, None]:
     if len(_slices) == 0:
         raise StopIteration()
 
@@ -26,7 +26,7 @@ def split_shape_in_half(_slices: tuple[int] | tuple[slice]) -> Generator[slice]:
         yield slices
 
 
-def split_blocks_in_half(block: np.ndarray) -> Generator[np.ndarray]:
+def split_blocks_in_half(block: np.ndarray) -> Generator[np.ndarray, None, None]:
     for slices in split_shape_in_half(block.shape):
         yield block[slices]
 
@@ -43,7 +43,7 @@ def split_blocks_equal_size(block: np.ndarray, block_size: int) -> list[np.ndarr
 
     split_blocks = []
     for slices in product(*slices_per_dimension):
-        split_block = block[*slices]
+        split_block = block[slices]
         split_blocks.append(split_block)
 
     return split_blocks

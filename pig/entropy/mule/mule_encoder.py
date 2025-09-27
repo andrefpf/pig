@@ -10,7 +10,7 @@ from pig.utils.block_utils import split_blocks_in_half
 from .mule_optimizer import MuleOptimizer
 from .mule_probability_handler import MuleProbabilityHandler
 
-type Flags = deque[str]
+Flags = deque[str]
 
 
 class MuleEncoder:
